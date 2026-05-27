@@ -13,7 +13,7 @@ services:
       - PYTHONUNBUFFERED=1
     env_file:
       - .env
-    restart: always
+    # restart: always
 
   frontend:
     build:
@@ -29,7 +29,7 @@ services:
       - .env
     depends_on:
       - backend
-    restart: always
+    # restart: always
 
 volumes:
   frontend_node_modules:
