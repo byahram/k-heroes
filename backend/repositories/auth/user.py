@@ -4,7 +4,12 @@ from typing import List, Optional, Tuple
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
-from core.auth_policy import InvalidLoginIdError, validate_login_id, validate_optional_email
+from core.auth_policy import (
+    InvalidLoginIdError,
+    build_google_login_id,
+    validate_login_id,
+    validate_optional_email,
+)
 from core.security import hash_password, verify_password
 from db.models import AuthProvider, PlaySession, User, UserGrade
 from repositories.simulation.content import resolve_play_session_choices_history
@@ -104,6 +109,20 @@ def get_user_by_google_provider_user_id(db: Session, provider_user_id: str) -> O
     )
 
 
+def _resolve_google_login_id(db: Session, provider_user_id: str, *, exclude_user_id: Optional[int] = None) -> str:
+    login_id = build_google_login_id(provider_user_id)
+    existing = get_user_by_login_id(db, login_id)
+    if existing and existing.id != exclude_user_id:
+        raise UserDuplicateError("login_id", login_id)
+    return login_id
+
+
+def _ensure_google_login_id(db: Session, user: User, provider_user_id: str) -> None:
+    if user.login_id:
+        return
+    user.login_id = _resolve_google_login_id(db, provider_user_id, exclude_user_id=user.id)
+
+
 def create_local_user(db: Session, data: UserSignupRequest) -> User:
     login_id = validate_login_id(data.login_id)
     email = validate_optional_email(data.email)
@@ -146,6 +165,7 @@ def authenticate_google_user(
 ) -> User:
     user = get_user_by_google_provider_user_id(db, provider_user_id)
     if user:
+        _ensure_google_login_id(db, user, provider_user_id)
         if name and not user.name:
             user.name = name
         if email and not user.email:
@@ -167,7 +187,7 @@ def authenticate_google_user(
     user = User(
         auth_provider=AuthProvider.GOOGLE,
         provider_user_id=provider_user_id,
-        login_id=None,
+        login_id=_resolve_google_login_id(db, provider_user_id),
         name=name,
         email=stored_email,
         password_hash=None,
@@ -194,6 +214,9 @@ def update_current_user(db: Session, user: User, data: UserUpdateRequest) -> Use
         "current_password" in updates or "new_password" in updates
     ):
         raise ValueError("password change not allowed")
+
+    if user.auth_provider == AuthProvider.GOOGLE and "email" in updates:
+        raise ValueError("google email change not allowed")
 
     if user.auth_provider == AuthProvider.LOCAL and (
         "current_password" in updates or "new_password" in updates

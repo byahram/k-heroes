@@ -1,6 +1,6 @@
 "use client";
 
-import { forwardRef, type ComponentPropsWithoutRef } from "react";
+import { forwardRef, type ComponentPropsWithoutRef, type ReactNode } from "react";
 import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
@@ -12,6 +12,7 @@ type AuthFormFieldProps = {
   error?: string;
   showPasswordToggle?: boolean;
   required?: boolean;
+  labelAddon?: ReactNode;
 } & ComponentPropsWithoutRef<"input">;
 
 export const AuthFormField = forwardRef<HTMLInputElement, AuthFormFieldProps>(function AuthFormField(
@@ -21,6 +22,7 @@ export const AuthFormField = forwardRef<HTMLInputElement, AuthFormFieldProps>(fu
     hint,
     id,
     label,
+    labelAddon,
     showPasswordToggle = false,
     required = false,
     ...inputProps
@@ -33,9 +35,12 @@ export const AuthFormField = forwardRef<HTMLInputElement, AuthFormFieldProps>(fu
 
   return (
     <div className="space-y-2">
-      <label className="block text-sm font-medium text-[#3A3530]" htmlFor={id}>
-        {label}
-        {required ? <span className="ml-0.5 text-[#9A3F38]">*</span> : null}
+      <label className="flex flex-wrap items-center gap-2 text-sm font-medium text-[#3A3530]" htmlFor={id}>
+        <span>
+          {label}
+          {required ? <span className="ml-0.5 text-[#9A3F38]">*</span> : null}
+        </span>
+        {labelAddon}
       </label>
       <div className="relative">
         <input

@@ -1,3 +1,5 @@
+import base64
+import json
 import os
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict
@@ -28,7 +30,7 @@ def get_remember_me_expire_hours() -> int:
 
 
 def get_google_client_id() -> str:
-    return os.environ.get("GOOGLE_CLIENT_ID", "")
+    return os.environ.get("GOOGLE_CLIENT_ID", "").strip()
 
 
 def hash_password(password: str) -> str:
@@ -67,9 +69,40 @@ def decode_access_token(token: str) -> Dict[str, Any]:
     return jwt.decode(token, secret, algorithms=[JWT_ALGORITHM])
 
 
+def _log_google_token_audience_hint(token: str, expected_client_id: str) -> None:
+    try:
+        parts = token.split(".")
+        if len(parts) < 2:
+            return
+        payload_segment = parts[1]
+        padding = "=" * (-len(payload_segment) % 4)
+        payload = json.loads(base64.urlsafe_b64decode(payload_segment + padding))
+        print(
+            "[google-auth] audience check:",
+            f"expected={expected_client_id}",
+            f"token_aud={payload.get('aud')}",
+            f"token_azp={payload.get('azp')}",
+            flush=True,
+        )
+    except Exception:
+        return
+
+
 def verify_google_id_token(token: str) -> Dict[str, Any]:
     client_id = get_google_client_id()
     if not client_id:
         raise RuntimeError("GOOGLE_CLIENT_ID is not configured")
+
+    token = token.strip()
     request = Request()
-    return google_id_token.verify_oauth2_token(token, request, client_id)
+    try:
+        return google_id_token.verify_oauth2_token(
+            token,
+            request,
+            client_id,
+            clock_skew_in_seconds=10,
+        )
+    except Exception as exc:
+        _log_google_token_audience_hint(token, client_id)
+        print(f"[google-auth] token verify failed: {exc}", flush=True)
+        raise ValueError(str(exc)) from exc

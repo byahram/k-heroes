@@ -52,6 +52,7 @@ def authenticate_user(body: UserLoginRequest, db: Session) -> User:
 
 
 def authenticate_google_user(body: GoogleLoginRequest, db: Session) -> User:
+    print("[google-auth] google/session request received", flush=True)
     try:
         payload = verify_google_id_token(body.id_token)
     except RuntimeError as exc:
@@ -196,6 +197,8 @@ def update_me(
             raise HTTPException(status_code=400, detail="Google 계정은 비밀번호를 변경할 수 없습니다.") from exc
         if message == "password change requires current and new password":
             raise HTTPException(status_code=400, detail="비밀번호 변경에는 현재 비밀번호와 새 비밀번호가 필요합니다.") from exc
+        if message == "google email change not allowed":
+            raise HTTPException(status_code=400, detail="Google 계정 이메일은 변경할 수 없습니다.") from exc
         raise
     return UserResponse.model_validate(updated_user)
 

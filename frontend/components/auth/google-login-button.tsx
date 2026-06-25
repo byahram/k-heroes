@@ -1,25 +1,170 @@
-import type { ComponentProps } from "react";
-import { AuthButton } from "./auth-button";
+"use client";
 
-type GoogleLoginButtonProps = Omit<ComponentProps<typeof AuthButton>, "children" | "variant"> & {
+import Script from "next/script";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { AuthButton } from "@/components/auth/auth-button";
+import { getGoogleClientId } from "@/lib/auth/google-config";
+import { cn } from "@/lib/utils/cn";
+
+type GoogleLoginButtonProps = {
+  disabled?: boolean;
+  isLoading?: boolean;
   label?: string;
+  onBeforeSignIn?: () => boolean | Promise<boolean>;
+  onCredential: (idToken: string) => void | Promise<void>;
+  onError?: (message: string) => void;
 };
 
 export function GoogleLoginButton({
+  disabled = false,
+  isLoading = false,
   label = "Google로 계속하기",
-  type = "button",
-  ...props
+  onBeforeSignIn,
+  onCredential,
+  onError,
 }: GoogleLoginButtonProps) {
+  const clientId = getGoogleClientId();
+  const containerRef = useRef<HTMLDivElement>(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const initializedRef = useRef(false);
+  const onCredentialRef = useRef(onCredential);
+  const onBeforeSignInRef = useRef(onBeforeSignIn);
+  const onErrorRef = useRef(onError);
+  const disabledRef = useRef(disabled);
+  const isLoadingRef = useRef(isLoading);
+  const [scriptReady, setScriptReady] = useState(false);
+  const [buttonWidth, setButtonWidth] = useState(0);
+
+  onCredentialRef.current = onCredential;
+  onBeforeSignInRef.current = onBeforeSignIn;
+  onErrorRef.current = onError;
+  disabledRef.current = disabled;
+  isLoadingRef.current = isLoading;
+
+  const handleCredential = useCallback(async (response: CredentialResponse) => {
+    if (disabledRef.current || isLoadingRef.current) {
+      return;
+    }
+
+    if (onBeforeSignInRef.current) {
+      const allowed = await onBeforeSignInRef.current();
+      if (!allowed) {
+        return;
+      }
+    }
+
+    const idToken = response.credential?.trim();
+    if (!idToken) {
+      onErrorRef.current?.("구글 로그인 정보를 받지 못했습니다.");
+      return;
+    }
+
+    try {
+      await onCredentialRef.current(idToken);
+    } catch {
+      // 상위에서 에러 메시지를 처리합니다.
+    }
+  }, []);
+
+  useEffect(() => {
+    const element = wrapperRef.current;
+    if (!element) {
+      return;
+    }
+
+    const updateWidth = () => {
+      setButtonWidth(element.offsetWidth);
+    };
+
+    updateWidth();
+
+    const observer = new ResizeObserver(updateWidth);
+    observer.observe(element);
+
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (!scriptReady || !clientId || !window.google || initializedRef.current) {
+      return;
+    }
+
+    window.google.accounts.id.initialize({
+      client_id: clientId,
+      callback: handleCredential,
+    });
+    initializedRef.current = true;
+  }, [clientId, handleCredential, scriptReady]);
+
+  useEffect(() => {
+    if (
+      !scriptReady ||
+      !clientId ||
+      !containerRef.current ||
+      !window.google ||
+      !initializedRef.current ||
+      buttonWidth <= 0
+    ) {
+      return;
+    }
+
+    containerRef.current.innerHTML = "";
+    window.google.accounts.id.renderButton(containerRef.current, {
+      type: "standard",
+      theme: "outline",
+      size: "large",
+      text: "continue_with",
+      width: buttonWidth,
+      locale: "ko",
+    });
+  }, [buttonWidth, clientId, scriptReady]);
+
+  if (!clientId) {
+    return (
+      <AuthButton
+        className="w-full font-medium"
+        disabled={disabled || isLoading}
+        onClick={() => onError?.("구글 로그인이 설정되지 않았습니다.")}
+        type="button"
+        variant="secondary"
+      >
+        <GoogleIcon />
+        {label}
+      </AuthButton>
+    );
+  }
+
   return (
-    <AuthButton
-      className="font-medium"
-      type={type}
-      variant="secondary"
-      {...props}
-    >
-      <GoogleIcon />
-      {label}
-    </AuthButton>
+    <>
+      <Script
+        onLoad={() => setScriptReady(true)}
+        src="https://accounts.google.com/gsi/client"
+        strategy="afterInteractive"
+      />
+
+      <div
+        className={cn(
+          "relative w-full",
+          (disabled || isLoading) && "pointer-events-none opacity-60",
+        )}
+        ref={wrapperRef}
+      >
+        <AuthButton
+          aria-hidden
+          className="pointer-events-none w-full font-medium"
+          tabIndex={-1}
+          type="button"
+          variant="secondary"
+        >
+          <GoogleIcon />
+          {isLoading ? "로그인 중..." : label}
+        </AuthButton>
+
+        <div className="absolute inset-0 overflow-hidden opacity-[0.01]">
+          <div className="size-full" ref={containerRef} />
+        </div>
+      </div>
+    </>
   );
 }
 

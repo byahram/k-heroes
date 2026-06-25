@@ -15,6 +15,7 @@ import { AuthApiError, fetchAuthApiJson } from "@/lib/auth/auth-api";
 import { LOGIN_ID_MAX_LENGTH, LOGIN_ID_MIN_LENGTH, validateLoginId } from "@/lib/auth/login-id-policy";
 import { PASSWORD_MAX_LENGTH } from "@/lib/auth/password-policy";
 import { authMeQueryKey, toUserProfile } from "@/hooks/use-auth-me";
+import { useGoogleSessionLogin } from "@/hooks/use-google-session-login";
 import { useGuestOnlyRedirect } from "@/hooks/use-guest-only-redirect";
 import type { UserProfile } from "@/lib/auth/types";
 
@@ -60,7 +61,22 @@ function LoginForm() {
   });
   const [errorMessage, setErrorMessage] = useState("");
   const [isRedirecting, setIsRedirecting] = useState(false);
-  const isLoggingIn = isSubmitting || isRedirecting;
+  const { isLoggingIn: isGoogleLoggingIn, loginWithGoogleIdToken } = useGoogleSessionLogin();
+  const isLoggingIn = isSubmitting || isRedirecting || isGoogleLoggingIn;
+
+  async function handleGoogleCredential(idToken: string) {
+    setErrorMessage("");
+
+    try {
+      await loginWithGoogleIdToken(idToken);
+    } catch (error) {
+      setErrorMessage(
+        error instanceof AuthApiError
+          ? error.message
+          : "구글 로그인 요청 중 오류가 발생했습니다.",
+      );
+    }
+  }
 
   async function submitLogin(data: LoginFormValues) {
     setErrorMessage("");
@@ -92,10 +108,6 @@ function LoginForm() {
     }
   }
 
-  function handleGoogleLogin() {
-    setErrorMessage("구글 로그인은 API 연동 후 사용할 수 있습니다.");
-  }
-
   if (isCheckingAuth) {
     return null;
   }
@@ -117,6 +129,12 @@ function LoginForm() {
         {signupSuccess ? (
           <div className="mb-5">
             <AuthAlert message="회원가입이 완료되었습니다. 로그인해 주세요." variant="info" />
+          </div>
+        ) : null}
+
+        {errorMessage ? (
+          <div className="mb-5">
+            <AuthAlert message={errorMessage} />
           </div>
         ) : null}
 
@@ -164,8 +182,6 @@ function LoginForm() {
             로그인 유지하기
           </label>
 
-          {errorMessage ? <AuthAlert message={errorMessage} /> : null}
-
           <AuthButton isLoading={isLoggingIn} loadingText="로그인 중..." type="submit">
             로그인
           </AuthButton>
@@ -173,7 +189,11 @@ function LoginForm() {
 
         <AuthDivider />
 
-        <GoogleLoginButton onClick={handleGoogleLogin} />
+        <GoogleLoginButton
+          isLoading={isGoogleLoggingIn}
+          onCredential={handleGoogleCredential}
+          onError={setErrorMessage}
+        />
       </AuthFormCard>
     </AuthFormLayout>
   );

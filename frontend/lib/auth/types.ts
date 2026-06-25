@@ -49,5 +49,5 @@ export const gradeLabels: Record<UserGrade, string> = {
 
 export const authProviderLabels: Record<AuthProvider, string> = {
   local: "일반 가입",
-  google: "Google",
+  google: "구글 계정",
 };

@@ -7,6 +7,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { AuthButton } from "@/components/auth/auth-button";
 import { AuthFormField } from "@/components/auth/auth-form-field";
+import { AuthProviderBadge } from "@/components/auth/auth-provider-badge";
 import { PasswordRequirements } from "@/components/auth/password-requirements";
 import { SitePageShell } from "@/components/layout/site-page-shell";
 import {
@@ -48,6 +49,7 @@ function AccountSettingsForm({ user }: AccountSettingsFormProps) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const isLocalAccount = user.auth_provider === "local";
+  const isGoogleAccount = user.auth_provider === "google";
 
   const {
     formState: { errors, isSubmitting },
@@ -93,15 +95,18 @@ function AccountSettingsForm({ user }: AccountSettingsFormProps) {
     try {
       const payload: {
         name: string | null;
-        email: string | null;
+        email?: string | null;
         nickname: string | null;
         current_password?: string;
         new_password?: string;
       } = {
         name: name || null,
-        email: email || null,
         nickname: nickname || null,
       };
+
+      if (isLocalAccount) {
+        payload.email = email || null;
+      }
 
       if (shouldChangePassword) {
         payload.current_password = data.current_password.trim();
@@ -165,6 +170,7 @@ function AccountSettingsForm({ user }: AccountSettingsFormProps) {
           disabled
           id="login_id"
           label="아이디"
+          labelAddon={<AuthProviderBadge provider={user.auth_provider} />}
           name="login_id"
           type="text"
         />
@@ -194,18 +200,31 @@ function AccountSettingsForm({ user }: AccountSettingsFormProps) {
           {...register("name")}
         />
 
-        <AuthFormField
-          autoComplete="email"
-          error={errors.email?.message}
-          id="email"
-          label="이메일"
-          maxLength={EMAIL_MAX_LENGTH}
-          placeholder="이메일 (선택)"
-          type="email"
-          {...register("email", {
-            validate: (value) => validateOptionalEmail(value) ?? true,
-          })}
-        />
+        {isGoogleAccount ? (
+          <AuthFormField
+            autoComplete="email"
+            defaultValue={user.email ?? ""}
+            disabled
+            id="email"
+            label="이메일"
+            name="email"
+            type="email"
+            hint="Google 계정에서 연동된 이메일입니다. 변경할 수 없습니다."
+          />
+        ) : (
+          <AuthFormField
+            autoComplete="email"
+            error={errors.email?.message}
+            id="email"
+            label="이메일"
+            maxLength={EMAIL_MAX_LENGTH}
+            placeholder="이메일 (선택)"
+            type="email"
+            {...register("email", {
+              validate: (value) => validateOptionalEmail(value) ?? true,
+            })}
+          />
+        )}
       </section>
 
       {isLocalAccount ? (
@@ -300,14 +319,7 @@ function AccountSettingsForm({ user }: AccountSettingsFormProps) {
             required
           />
         </section>
-      ) : (
-        <p
-          className="rounded-lg border px-4 py-3 text-sm text-[#6B6458]"
-          style={{ borderColor: "rgba(42,66,50,0.12)", background: "rgba(42,66,50,0.03)" }}
-        >
-          Google 계정은 비밀번호를 이 화면에서 변경할 수 없습니다.
-        </p>
-      )}
+      ) : null}
 
       <div className="grid gap-3 sm:grid-cols-2">
         <AuthButton isLoading={isSubmitting} loadingText="저장 중..." type="submit">
@@ -419,7 +431,9 @@ export default function AccountSettingsPage() {
             계정 정보 변경
           </h1>
           <p className="mt-3 text-sm leading-relaxed text-[#6B6458]">
-            닉네임, 이름, 이메일과 비밀번호를 수정할 수 있습니다.
+            {user.auth_provider === "google"
+              ? "닉네임과 이름을 수정할 수 있습니다. 이메일은 구글 계정에서 연동된 값만 표시됩니다."
+              : "닉네임, 이름, 이메일과 비밀번호를 수정할 수 있습니다."}
           </p>
         </header>
 

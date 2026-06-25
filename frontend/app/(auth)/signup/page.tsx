@@ -22,6 +22,7 @@ import { AuthApiError, fetchAuthApiJson } from "@/lib/auth/auth-api";
 import { EMAIL_MAX_LENGTH, validateOptionalEmail } from "@/lib/auth/email-policy";
 import { LOGIN_ID_MAX_LENGTH, LOGIN_ID_MIN_LENGTH, validateLoginId } from "@/lib/auth/login-id-policy";
 import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH, validatePassword } from "@/lib/auth/password-policy";
+import { useGoogleSessionLogin } from "@/hooks/use-google-session-login";
 import { useGuestOnlyRedirect } from "@/hooks/use-guest-only-redirect";
 import { site } from "@/lib/site";
 
@@ -73,7 +74,9 @@ export default function SignupPage() {
   const [submitDialogOpen, setSubmitDialogOpen] = useState(false);
   const [submitDialogMessage, setSubmitDialogMessage] = useState("");
   const [submitDialogFocusTarget, setSubmitDialogFocusTarget] = useState<SubmitDialogFocusTarget>(null);
+  const { isLoggingIn: isGoogleLoggingIn, loginWithGoogleIdToken } = useGoogleSessionLogin();
   const password = watch("password");
+  const agreedToTerms = watch("agreed_to_terms");
 
   function openSubmitDialog(message: string, focusTarget: SubmitDialogFocusTarget = null) {
     setSubmitDialogMessage(message);
@@ -111,8 +114,16 @@ export default function SignupPage() {
     }
   }
 
-  function handleGoogleSignup() {
-    openSubmitDialog("구글 회원가입은 현재 화면에서 바로 사용할 수 없습니다.");
+  async function handleGoogleCredential(idToken: string) {
+    try {
+      await loginWithGoogleIdToken(idToken);
+    } catch (error) {
+      if (error instanceof AuthApiError) {
+        openSubmitDialog(getSignupErrorMessage(error.message));
+      } else {
+        openSubmitDialog("구글 회원가입을 완료하지 못했습니다. 잠시 후 다시 시도해 주세요.");
+      }
+    }
   }
 
   if (isCheckingAuth) {
@@ -273,7 +284,20 @@ export default function SignupPage() {
 
           <AuthDivider />
 
-          <GoogleLoginButton label="Google로 가입하기" onClick={handleGoogleSignup} />
+          <GoogleLoginButton
+            disabled={!agreedToTerms}
+            isLoading={isGoogleLoggingIn}
+            label="Google로 가입하기"
+            onBeforeSignIn={() => {
+              if (!getValues("agreed_to_terms")) {
+                openSubmitDialog("서비스 이용약관 및 개인정보 처리방침에 동의해 주세요.");
+                return false;
+              }
+              return true;
+            }}
+            onCredential={handleGoogleCredential}
+            onError={openSubmitDialog}
+          />
         </AuthFormCard>
       </AuthFormLayout>
 

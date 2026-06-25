@@ -15,6 +15,7 @@ import {
   type PlaySessionItem,
   type UserProfile,
 } from "@/lib/auth/types";
+import { AuthProviderBadge } from "@/components/auth/auth-provider-badge";
 import { getSessionActions, type SessionLinkAction } from "@/lib/mypage/session-links";
 import { cn } from "@/lib/utils/cn";
 
@@ -126,7 +127,10 @@ export function MypageAccountInfo({ user, footer }: MypageAccountInfoProps) {
             <row.icon aria-hidden className="mt-0.5 size-4 shrink-0 text-[#8A847C]" />
             <div className="min-w-0 flex-1">
               <dt className="text-xs text-[#8A847C]">{row.label}</dt>
-              <dd className="mt-1 text-sm text-[#3A3530]">{row.value}</dd>
+              <dd className="mt-1 flex flex-wrap items-center gap-2 text-sm text-[#3A3530]">
+                <span>{row.value}</span>
+                {row.label === "아이디" ? <AuthProviderBadge provider={user.auth_provider} /> : null}
+              </dd>
             </div>
           </div>
         ))}
