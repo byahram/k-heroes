@@ -1,4 +1,4 @@
-from datetime import date, datetime, time
+from datetime import date, datetime, time, timezone
 from typing import List, Optional, Tuple
 
 from sqlalchemy import func, select
@@ -14,6 +14,7 @@ from core.security import hash_password, verify_password
 from db.models import AuthProvider, PlaySession, User, UserGrade
 from repositories.simulation.content import resolve_play_session_choices_history
 from models.auth.user import (
+    AdminMemberUpdate,
     AdminPlaySessionItem,
     UserLoginRequest,
     UserPlaySessionItem,
@@ -74,11 +75,15 @@ def _to_admin_play_session_item(session: PlaySession) -> AdminPlaySessionItem:
     )
 
 
-def _get_user_or_raise(db: Session, user_id: int) -> User:
+def _get_active_user_or_raise(db: Session, user_id: int) -> User:
     user = db.get(User, user_id)
-    if not user:
+    if not user or user.deleted_at is not None:
         raise UserNotFoundError(user_id)
     return user
+
+
+def _get_user_or_raise(db: Session, user_id: int) -> User:
+    return _get_active_user_or_raise(db, user_id)
 
 
 def get_user_by_id(db: Session, user_id: int) -> Optional[User]:
@@ -86,7 +91,9 @@ def get_user_by_id(db: Session, user_id: int) -> Optional[User]:
 
 
 def get_user_by_login_id(db: Session, login_id: str) -> Optional[User]:
-    return db.scalar(select(User).where(User.login_id == login_id))
+    return db.scalar(
+        select(User).where(User.login_id == login_id, User.deleted_at.is_(None))
+    )
 
 
 def _ensure_unique_login_id(db: Session, login_id: str) -> None:
@@ -94,8 +101,11 @@ def _ensure_unique_login_id(db: Session, login_id: str) -> None:
         raise UserDuplicateError("login_id", login_id)
 
 
-def _ensure_unique_email(db: Session, email: str) -> None:
-    existing = db.scalar(select(User).where(User.email == email))
+def _ensure_unique_email(db: Session, email: str, *, exclude_user_id: Optional[int] = None) -> None:
+    query = select(User).where(User.email == email, User.deleted_at.is_(None))
+    if exclude_user_id is not None:
+        query = query.where(User.id != exclude_user_id)
+    existing = db.scalar(query)
     if existing:
         raise UserDuplicateError("email", email)
 
@@ -105,6 +115,7 @@ def get_user_by_google_provider_user_id(db: Session, provider_user_id: str) -> O
         select(User).where(
             User.auth_provider == AuthProvider.GOOGLE,
             User.provider_user_id == provider_user_id,
+            User.deleted_at.is_(None),
         )
     )
 
@@ -169,7 +180,13 @@ def authenticate_google_user(
         if name and not user.name:
             user.name = name
         if email and not user.email:
-            existing_email_user = db.scalar(select(User).where(User.email == email, User.id != user.id))
+            existing_email_user = db.scalar(
+                select(User).where(
+                    User.email == email,
+                    User.id != user.id,
+                    User.deleted_at.is_(None),
+                )
+            )
             if not existing_email_user:
                 user.email = email
         if name and not user.nickname:
@@ -180,7 +197,9 @@ def authenticate_google_user(
 
     stored_email = email
     if stored_email:
-        existing_email_user = db.scalar(select(User).where(User.email == stored_email))
+        existing_email_user = db.scalar(
+            select(User).where(User.email == stored_email, User.deleted_at.is_(None))
+        )
         if existing_email_user:
             stored_email = None
 
@@ -237,9 +256,7 @@ def update_current_user(db: Session, user: User, data: UserUpdateRequest) -> Use
         new_email = validate_optional_email(updates.pop("email"))
         if new_email != user.email:
             if new_email:
-                existing_email_user = db.scalar(select(User).where(User.email == new_email, User.id != user.id))
-                if existing_email_user:
-                    raise UserDuplicateError("email", new_email)
+                _ensure_unique_email(db, new_email, exclude_user_id=user.id)
             user.email = new_email
 
     db.flush()
@@ -339,3 +356,84 @@ def list_play_sessions_for_admin(
 
     items = [_to_admin_play_session_item(session) for session in sessions]
     return items, total
+
+
+def list_users_for_admin(
+    db: Session,
+    *,
+    grade: Optional[UserGrade] = None,
+    auth_provider: Optional[AuthProvider] = None,
+    login_id: Optional[str] = None,
+    name: Optional[str] = None,
+    email: Optional[str] = None,
+    page: int = 1,
+    page_size: int = 20,
+) -> Tuple[List[User], int]:
+    conditions = [User.deleted_at.is_(None)]
+    if grade is not None:
+        conditions.append(User.grade == grade)
+    if auth_provider is not None:
+        conditions.append(User.auth_provider == auth_provider)
+    if login_id:
+        conditions.append(User.login_id.ilike(f"%{login_id}%"))
+    if name:
+        conditions.append(User.name.ilike(f"%{name}%"))
+    if email:
+        conditions.append(User.email.ilike(f"%{email}%"))
+
+    total = db.scalar(select(func.count(User.id)).where(*conditions)) or 0
+    users = db.scalars(
+        select(User)
+        .where(*conditions)
+        .order_by(User.id.desc())
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+    ).all()
+    return list(users), total
+
+
+def get_user_for_admin_by_id(db: Session, user_id: int) -> User:
+    return _get_active_user_or_raise(db, user_id)
+
+
+def update_user_by_admin(db: Session, user_id: int, data: AdminMemberUpdate) -> User:
+    user = _get_active_user_or_raise(db, user_id)
+    updates = data.model_dump(exclude_unset=True)
+
+    if user.auth_provider == AuthProvider.GOOGLE and "password" in updates:
+        raise ValueError("password change not allowed")
+
+    if "password" in updates:
+        password = updates.pop("password")
+        if user.auth_provider != AuthProvider.LOCAL:
+            raise ValueError("password change not allowed")
+        if password:
+            user.password_hash = hash_password(password)
+
+    if "name" in updates:
+        user.name = _normalize_optional_text(updates.pop("name"))
+    if "nickname" in updates:
+        user.nickname = _normalize_optional_text(updates.pop("nickname"))
+    if "email" in updates:
+        new_email = validate_optional_email(updates.pop("email"))
+        if user.auth_provider == AuthProvider.GOOGLE:
+            if new_email is not None and new_email != user.email:
+                raise ValueError("google email change not allowed")
+        elif new_email != user.email:
+            if new_email:
+                _ensure_unique_email(db, new_email, exclude_user_id=user.id)
+            user.email = new_email
+    if "grade" in updates:
+        user.grade = updates.pop("grade")
+
+    db.flush()
+    db.refresh(user)
+    return user
+
+
+def delete_user_by_admin(db: Session, user_id: int) -> User:
+    user = _get_active_user_or_raise(db, user_id)
+    user.deleted_at = datetime.now(timezone.utc).replace(tzinfo=None)
+    db.flush()
+    db.refresh(user)
+    return user

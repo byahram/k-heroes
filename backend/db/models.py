@@ -222,7 +222,7 @@ class AdminUser(SoftDeleteMixin, Base):
     )
 
 
-class User(Base):
+class User(SoftDeleteMixin, Base):
     __tablename__ = "users"
     __table_args__ = (
         UniqueConstraint("auth_provider", "provider_user_id", name="uq_users_provider_user_id"),

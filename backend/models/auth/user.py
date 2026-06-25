@@ -6,6 +6,31 @@ from pydantic import BaseModel, ConfigDict, Field
 from db.models import AuthProvider, UserGrade
 
 
+class AdminMemberResponse(BaseModel):
+    id: int
+    auth_provider: AuthProvider
+    login_id: Optional[str] = None
+    name: Optional[str] = None
+    email: Optional[str] = None
+    nickname: Optional[str] = None
+    grade: UserGrade
+    created_at: datetime
+    updated_at: datetime
+    deleted_at: Optional[datetime] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class AdminMemberUpdate(BaseModel):
+    name: Optional[str] = Field(None, max_length=100, description="이름")
+    nickname: Optional[str] = Field(None, max_length=100, description="닉네임")
+    email: Optional[str] = Field(None, max_length=255, description="이메일")
+    grade: Optional[UserGrade] = Field(None, description="student | teacher")
+    password: Optional[str] = Field(None, min_length=8, max_length=128, description="비밀번호 (로컬 계정만)")
+
+    model_config = ConfigDict(extra="forbid")
+
+
 class UserResponse(BaseModel):
     id: int
     auth_provider: AuthProvider

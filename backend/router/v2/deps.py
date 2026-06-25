@@ -75,7 +75,7 @@ def get_current_user(
         raise HTTPException(status_code=401, detail="로그인이 만료되었습니다.") from None
 
     user = db.get(User, user_id)
-    if not user:
+    if not user or user.deleted_at is not None:
         raise HTTPException(status_code=401, detail="사용할 수 없는 회원 계정입니다.")
     return user
 
@@ -100,6 +100,6 @@ def get_optional_current_user(
         return None
 
     user = db.get(User, user_id)
-    if not user:
+    if not user or user.deleted_at is not None:
         return None
     return user

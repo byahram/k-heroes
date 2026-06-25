@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 # from router import character, simulation
 from router.v2 import auth as auth_v2, admin_auth as admin_auth_v2, admin_play_session as admin_play_session_v2, admin_user as admin_user_v2, character as character_v2, character_category as character_category_v2, ending as ending_v2, scenario as scenario_v2, simulation as simulation_v2, turn as turn_v2, landing as landing_v2
-from router.v2.auth import teacher_grade_application as teacher_grade_application_v2
+from router.v2.auth import teacher_grade_application as teacher_grade_application_v2, user_admin as user_admin_v2
 import simulation_data_manager
 
 app = FastAPI()
@@ -44,6 +44,7 @@ app.include_router(landing_v2.router)
 
 app.include_router(admin_auth_v2.router)
 app.include_router(admin_user_v2.admin_router)
+app.include_router(user_admin_v2.admin_router)
 app.include_router(admin_play_session_v2.admin_router)
 app.include_router(teacher_grade_application_v2.admin_router)
 app.include_router(character_category_v2.admin_router)

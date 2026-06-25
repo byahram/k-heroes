@@ -87,3 +87,64 @@ export function TeacherGradeApplicationStatusBadge({
     </span>
   );
 }
+
+export type MemberGrade = "student" | "teacher";
+export type MemberAuthProvider = "local" | "google";
+
+const memberGradeLabels: Record<MemberGrade, string> = {
+  student: "학생",
+  teacher: "지도자",
+};
+
+const memberGradeStyles: Record<MemberGrade, string> = {
+  student: "bg-[#F4F1EA] text-[#6B6458]",
+  teacher: "bg-[#E8F0EB] text-[#2A4232]",
+};
+
+type MemberGradeBadgeProps = {
+  grade: MemberGrade;
+  className?: string;
+};
+
+export function MemberGradeBadge({ className, grade }: MemberGradeBadgeProps) {
+  return (
+    <span
+      className={cn(
+        "inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium",
+        memberGradeStyles[grade],
+        className,
+      )}
+    >
+      {memberGradeLabels[grade]}
+    </span>
+  );
+}
+
+const memberAuthProviderLabels: Record<MemberAuthProvider, string> = {
+  local: "일반",
+  google: "구글",
+};
+
+const memberAuthProviderStyles: Record<MemberAuthProvider, string> = {
+  local: "bg-[#F4F1EA] text-[#6B6458]",
+  google: "bg-[#EEF3FB] text-[#3A4F6B]",
+};
+
+type MemberAuthProviderBadgeProps = {
+  authProvider: MemberAuthProvider;
+  className?: string;
+};
+
+export function MemberAuthProviderBadge({ authProvider, className }: MemberAuthProviderBadgeProps) {
+  return (
+    <span
+      className={cn(
+        "inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium",
+        memberAuthProviderStyles[authProvider],
+        className,
+      )}
+    >
+      {memberAuthProviderLabels[authProvider]}
+    </span>
+  );
+}
