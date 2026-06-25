@@ -51,3 +51,39 @@ export function AdminStatusBadge({ className, isActive }: AdminStatusBadgeProps)
     </span>
   );
 }
+
+export type TeacherGradeApplicationStatus = "pending" | "approved" | "rejected";
+
+const teacherGradeApplicationStatusLabels: Record<TeacherGradeApplicationStatus, string> = {
+  pending: "검토 대기",
+  approved: "승인",
+  rejected: "반려",
+};
+
+const teacherGradeApplicationStatusStyles: Record<TeacherGradeApplicationStatus, string> = {
+  pending: "bg-[#FFF7E6] text-[#9A6B00]",
+  approved: "bg-[#E8F0EB] text-[#2A4232]",
+  rejected: "bg-[#FDF6F5] text-[#9A3F38]",
+};
+
+type TeacherGradeApplicationStatusBadgeProps = {
+  status: TeacherGradeApplicationStatus;
+  className?: string;
+};
+
+export function TeacherGradeApplicationStatusBadge({
+  className,
+  status,
+}: TeacherGradeApplicationStatusBadgeProps) {
+  return (
+    <span
+      className={cn(
+        "inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium",
+        teacherGradeApplicationStatusStyles[status],
+        className,
+      )}
+    >
+      {teacherGradeApplicationStatusLabels[status]}
+    </span>
+  );
+}

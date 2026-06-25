@@ -2,6 +2,7 @@ import {
   BookOpen,
   Flag,
   GitBranch,
+  GraduationCap,
   LayoutDashboard,
   Tags,
   UserCog,
@@ -37,7 +38,10 @@ export const adminNavGroups: AdminNavGroup[] = [
   },
   {
     label: "시스템",
-    items: [{ title: "어드민 회원", href: "/admin/admins", icon: UserCog }],
+    items: [
+      { title: "지도자 등급 신청", href: "/admin/teacher-grade-applications", icon: GraduationCap },
+      { title: "어드민 회원", href: "/admin/admins", icon: UserCog },
+    ],
   },
 ];
 
