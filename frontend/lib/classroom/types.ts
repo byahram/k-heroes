@@ -23,6 +23,25 @@ export type ClassRoomDetail = ClassRoom & {
   members: ClassMember[];
 };
 
+export type ClassActivitySummary = {
+  total_students: number;
+  participating_students: number;
+  completed_sessions: number;
+  average_history_score: number | null;
+};
+
+export type ClassPlaySessionRecord = {
+  id: string;
+  student_login_id: string | null;
+  student_name: string | null;
+  student_nickname: string | null;
+  character_name: string;
+  scenario_title: string;
+  scenario_sort_order: number | null;
+  history_score: number;
+  completed_at: string | null;
+};
+
 export type ClassRoomListResponse = {
   items: ClassRoom[];
   page: number;
@@ -42,6 +61,14 @@ export type StudentClassItem = {
 
 export type StudentClassListResponse = {
   items: StudentClassItem[];
+  page: number;
+  page_size: number;
+  total: number;
+  total_pages: number;
+};
+
+export type ClassPlaySessionListResponse = {
+  items: ClassPlaySessionRecord[];
   page: number;
   page_size: number;
   total: number;

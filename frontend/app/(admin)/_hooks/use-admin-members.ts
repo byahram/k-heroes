@@ -9,13 +9,19 @@ import {
 import { adminListQueryOptions } from "@/app/(admin)/_lib/admin-query-config";
 import type {
   MemberListFilters,
+  MemberDetailItem,
   MemberListItem,
+  MemberPlaySessionListResponse,
 } from "@/app/(admin)/admin/(dashboard)/users/_types";
+import { MEMBER_PLAY_SESSION_PAGE_SIZE } from "@/app/(admin)/admin/(dashboard)/users/_types";
 
 export const adminMemberKeys = {
   all: ["admin", "users"] as const,
   list: (page: number, pageSize: AdminPageSize, filters: MemberListFilters) =>
     [...adminMemberKeys.all, "list", { page, pageSize, filters }] as const,
+  detail: (id: number) => [...adminMemberKeys.all, "detail", id] as const,
+  playSessions: (id: number, page: number) =>
+    [...adminMemberKeys.all, "play-sessions", id, page] as const,
 };
 
 function membersPath(page: number, pageSize: AdminPageSize, filters: MemberListFilters) {
@@ -51,6 +57,43 @@ export function useAdminMembers(
   return useQuery({
     queryKey: adminMemberKeys.list(page, pageSize, filters),
     queryFn: ({ signal }) => fetchMemberList(page, pageSize, filters, signal),
+    ...adminListQueryOptions,
+  });
+}
+
+export function useAdminMember(memberId: number, enabled = true) {
+  return useQuery({
+    queryKey: adminMemberKeys.detail(memberId),
+    queryFn: ({ signal }) =>
+      fetchAdminApiJson<MemberDetailItem>(`/api/v2/admin/users/${memberId}`, {
+        cache: "no-store",
+        signal,
+      }),
+    enabled: enabled && memberId > 0,
+    ...adminListQueryOptions,
+  });
+}
+
+export function useAdminMemberPlaySessions(
+  memberId: number,
+  page: number,
+  enabled = true,
+) {
+  const params = new URLSearchParams({
+    page: String(page),
+    page_size: String(MEMBER_PLAY_SESSION_PAGE_SIZE),
+  });
+  return useQuery({
+    queryKey: adminMemberKeys.playSessions(memberId, page),
+    queryFn: ({ signal }) =>
+      fetchAdminApiJson<MemberPlaySessionListResponse>(
+        `/api/v2/admin/users/${memberId}/play-sessions?${params.toString()}`,
+        {
+          cache: "no-store",
+          signal,
+        },
+      ),
+    enabled: enabled && memberId > 0,
     ...adminListQueryOptions,
   });
 }

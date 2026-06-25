@@ -12,6 +12,8 @@ from core.auth_policy import (
 )
 from core.security import hash_password, verify_password
 from db.models import AuthProvider, PlaySession, User, UserGrade
+from models.auth.user import AdminMemberResponse
+from repositories.classroom import classroom as classroom_repository
 from repositories.simulation.content import resolve_play_session_choices_history
 from models.auth.user import (
     AdminMemberUpdate,
@@ -264,6 +266,35 @@ def update_current_user(db: Session, user: User, data: UserUpdateRequest) -> Use
     return user
 
 
+def get_play_session_summary_for_user(db: Session, user_id: int) -> dict:
+    conditions = [PlaySession.user_id == user_id, PlaySession.status == "completed"]
+    total = db.scalar(select(func.count(PlaySession.id)).where(*conditions)) or 0
+    average_history_score = db.scalar(
+        select(func.avg(PlaySession.history_score)).where(*conditions)
+    )
+    return {
+        "completed_count": total,
+        "average_history_score": (
+            float(average_history_score) if average_history_score is not None else None
+        ),
+    }
+
+
+def list_play_sessions_for_user_admin(
+    db: Session,
+    user_id: int,
+    *,
+    page: int = 1,
+    page_size: int = 5,
+) -> Tuple[List[UserPlaySessionItem], int, Optional[float]]:
+    return list_completed_play_sessions(
+        db,
+        user_id,
+        page=page,
+        page_size=page_size,
+    )
+
+
 def list_completed_play_sessions(
     db: Session,
     user_id: int,
@@ -394,6 +425,15 @@ def list_users_for_admin(
 
 def get_user_for_admin_by_id(db: Session, user_id: int) -> User:
     return _get_active_user_or_raise(db, user_id)
+
+
+def get_user_detail_for_admin(db: Session, user_id: int) -> dict:
+    user = _get_active_user_or_raise(db, user_id)
+    return {
+        **AdminMemberResponse.model_validate(user).model_dump(),
+        "classes": classroom_repository.list_classes_for_user_admin(db, user),
+        "play_session_summary": get_play_session_summary_for_user(db, user_id),
+    }
 
 
 def update_user_by_admin(db: Session, user_id: int, data: AdminMemberUpdate) -> User:

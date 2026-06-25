@@ -3,7 +3,20 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { fetchAuthApiJson } from "@/lib/auth/auth-api";
 import type { ClassListPageSize } from "@/components/classroom/class-list-pagination";
-import type { ClassRoom, ClassRoomDetail, ClassRoomListResponse } from "@/lib/classroom/types";
+import type {
+  ClassActivitySummary,
+  ClassPlaySessionListResponse,
+  ClassRoom,
+  ClassRoomDetail,
+  ClassRoomListResponse,
+} from "@/lib/classroom/types";
+import type {
+  ClassCharacterRecordStudent,
+  ClassCharacterRecordSummary,
+  ClassCharacterRecordsFilters,
+  ClassStudentSessionSummary,
+  ClassStudentSessionsFilters,
+} from "@/app/(auth)/classes/[id]/_types";
 
 export const TEACHER_CLASS_PAGE_SIZE: ClassListPageSize = 10;
 
@@ -42,6 +55,246 @@ export function useTeacherClass(classId: number, enabled = true) {
   return useQuery({
     queryKey: teacherClassKeys.detail(classId),
     queryFn: () => fetchAuthApiJson<ClassRoomDetail>(`/api/v2/classes/${classId}`),
+    enabled: enabled && classId > 0,
+  });
+}
+
+function classActivitySummaryPath(classId: number, dateFrom: string, dateTo: string) {
+  const params = new URLSearchParams();
+  if (dateFrom.trim()) {
+    params.set("date_from", dateFrom.trim());
+  }
+  if (dateTo.trim()) {
+    params.set("date_to", dateTo.trim());
+  }
+  const query = params.toString();
+  return query
+    ? `/api/v2/classes/${classId}/activity-summary?${query}`
+    : `/api/v2/classes/${classId}/activity-summary`;
+}
+
+export function useTeacherClassActivitySummary(
+  classId: number,
+  dateFrom = "",
+  dateTo = "",
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: [...teacherClassKeys.detail(classId), "activity-summary", { dateFrom, dateTo }] as const,
+    queryFn: () =>
+      fetchAuthApiJson<ClassActivitySummary>(classActivitySummaryPath(classId, dateFrom, dateTo)),
+    enabled: enabled && classId > 0,
+  });
+}
+
+export type ClassStudentSessionListResponse = {
+  items: ClassStudentSessionSummary[];
+  page: number;
+  page_size: number;
+  total: number;
+  total_pages: number;
+};
+
+function classStudentSessionsPath(
+  classId: number,
+  page: number,
+  pageSize: number,
+  filters: ClassStudentSessionsFilters,
+) {
+  const params = new URLSearchParams({
+    page: String(page),
+    page_size: String(pageSize),
+  });
+  if (filters.name.trim()) {
+    params.set("name", filters.name.trim());
+  }
+  if (filters.nickname.trim()) {
+    params.set("nickname", filters.nickname.trim());
+  }
+  if (filters.dateFrom.trim()) {
+    params.set("date_from", filters.dateFrom.trim());
+  }
+  if (filters.dateTo.trim()) {
+    params.set("date_to", filters.dateTo.trim());
+  }
+  return `/api/v2/classes/${classId}/student-sessions?${params.toString()}`;
+}
+
+export function useTeacherClassStudentSessions(
+  classId: number,
+  page: number,
+  pageSize: ClassListPageSize,
+  filters: ClassStudentSessionsFilters,
+  enabled = true,
+) {
+  const apiPage = page + 1;
+
+  return useQuery({
+    queryKey: [
+      ...teacherClassKeys.detail(classId),
+      "student-sessions",
+      { page: apiPage, pageSize, filters },
+    ] as const,
+    queryFn: () =>
+      fetchAuthApiJson<ClassStudentSessionListResponse>(
+        classStudentSessionsPath(classId, apiPage, pageSize, filters),
+      ),
+    enabled: enabled && classId > 0,
+  });
+}
+
+export type ClassCharacterRecordListResponse = {
+  items: ClassCharacterRecordSummary[];
+  page: number;
+  page_size: number;
+  total: number;
+  total_pages: number;
+};
+
+function classCharacterRecordsPath(
+  classId: number,
+  page: number,
+  pageSize: number,
+  filters: ClassCharacterRecordsFilters,
+) {
+  const params = new URLSearchParams({
+    page: String(page),
+    page_size: String(pageSize),
+  });
+  if (filters.characterName.trim()) {
+    params.set("character_name", filters.characterName.trim());
+  }
+  if (filters.dateFrom.trim()) {
+    params.set("date_from", filters.dateFrom.trim());
+  }
+  if (filters.dateTo.trim()) {
+    params.set("date_to", filters.dateTo.trim());
+  }
+  return `/api/v2/classes/${classId}/character-records?${params.toString()}`;
+}
+
+export function useTeacherClassCharacterRecords(
+  classId: number,
+  page: number,
+  pageSize: ClassListPageSize,
+  filters: ClassCharacterRecordsFilters,
+  enabled = true,
+) {
+  const apiPage = page + 1;
+
+  return useQuery({
+    queryKey: [
+      ...teacherClassKeys.detail(classId),
+      "character-records",
+      { page: apiPage, pageSize, filters },
+    ] as const,
+    queryFn: () =>
+      fetchAuthApiJson<ClassCharacterRecordListResponse>(
+        classCharacterRecordsPath(classId, apiPage, pageSize, filters),
+      ),
+    enabled: enabled && classId > 0,
+  });
+}
+
+export type ClassCharacterRecordStudentListResponse = {
+  items: ClassCharacterRecordStudent[];
+};
+
+function classCharacterRecordStudentsPath(
+  classId: number,
+  recordId: string,
+  dateFrom: string,
+  dateTo: string,
+) {
+  const params = new URLSearchParams();
+  if (dateFrom.trim()) {
+    params.set("date_from", dateFrom.trim());
+  }
+  if (dateTo.trim()) {
+    params.set("date_to", dateTo.trim());
+  }
+  const query = params.toString();
+  const encodedRecordId = encodeURIComponent(recordId);
+  return query
+    ? `/api/v2/classes/${classId}/character-records/${encodedRecordId}/students?${query}`
+    : `/api/v2/classes/${classId}/character-records/${encodedRecordId}/students`;
+}
+
+export function useTeacherClassCharacterRecordStudents(
+  classId: number,
+  recordId: string,
+  dateFrom: string,
+  dateTo: string,
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: [
+      ...teacherClassKeys.detail(classId),
+      "character-records",
+      recordId,
+      "students",
+      { dateFrom, dateTo },
+    ] as const,
+    queryFn: () =>
+      fetchAuthApiJson<ClassCharacterRecordStudentListResponse>(
+        classCharacterRecordStudentsPath(classId, recordId, dateFrom, dateTo),
+      ),
+    enabled: enabled && classId > 0 && recordId.length > 0,
+  });
+}
+
+function classPlaySessionsPath(
+  classId: number,
+  page: number,
+  pageSize: number,
+  filters: {
+    name: string;
+    nickname: string;
+    dateFrom: string;
+    dateTo: string;
+  },
+) {
+  const params = new URLSearchParams({
+    page: String(page),
+    page_size: String(pageSize),
+  });
+  if (filters.name.trim()) {
+    params.set("name", filters.name.trim());
+  }
+  if (filters.nickname.trim()) {
+    params.set("nickname", filters.nickname.trim());
+  }
+  if (filters.dateFrom.trim()) {
+    params.set("date_from", filters.dateFrom.trim());
+  }
+  if (filters.dateTo.trim()) {
+    params.set("date_to", filters.dateTo.trim());
+  }
+  return `/api/v2/classes/${classId}/play-sessions?${params.toString()}`;
+}
+
+export function useTeacherClassPlaySessions(
+  classId: number,
+  page: number,
+  pageSize: number,
+  filters: {
+    name: string;
+    nickname: string;
+    dateFrom: string;
+    dateTo: string;
+  },
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: [
+      ...teacherClassKeys.detail(classId),
+      "play-sessions",
+      { page, pageSize, ...filters },
+    ] as const,
+    queryFn: () =>
+      fetchAuthApiJson<ClassPlaySessionListResponse>(
+        classPlaySessionsPath(classId, page, pageSize, filters),
+      ),
     enabled: enabled && classId > 0,
   });
 }

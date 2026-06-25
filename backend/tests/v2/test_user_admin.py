@@ -96,6 +96,117 @@ def test_get_user_detail(client, db_session):
     data = response.json()
     assert data["id"] == user.id
     assert data["login_id"] == "member_detail"
+    assert data["classes"] == []
+    assert data["play_session_summary"]["completed_count"] == 0
+    assert data["play_session_summary"]["average_history_score"] is None
+
+
+@pytest.mark.usefixtures("jwt_env", "superadmin_user")
+def test_get_student_detail_includes_joined_classes(client, db_session):
+    from tests.v2.test_classroom import seed_teacher_user
+    from tests.v2.test_teacher_grade_application import login_user
+
+    teacher = seed_teacher_user(db_session, login_id="admin_member_teacher")
+    teacher_token = login_user(client, "admin_member_teacher")
+    create_response = client.post(
+        "/api/v2/classes",
+        headers={"Authorization": f"Bearer {teacher_token}"},
+        json={"name": "어드민 확인반", "entry_code_suffix": "ADM1"},
+    )
+    class_data = create_response.json()
+
+    student = seed_user(db_session, login_id="admin_member_student")
+    student_token = login_user(client, "admin_member_student")
+    client.post(
+        "/api/v2/my/classes/join",
+        headers={"Authorization": f"Bearer {student_token}"},
+        json={"entry_code": class_data["entry_code"]},
+    )
+
+    response = client.get(
+        f"/api/v2/admin/users/{student.id}",
+        headers=login_headers(client, SUPERADMIN_USERNAME, SUPERADMIN_PASSWORD),
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data["classes"]) == 1
+    assert data["classes"][0]["class_name"] == "어드민 확인반"
+    assert data["classes"][0]["entry_code"] == class_data["entry_code"]
+    assert data["classes"][0]["joined_at"] is not None
+
+
+@pytest.mark.usefixtures("jwt_env", "superadmin_user")
+def test_get_teacher_detail_includes_owned_classes(client, db_session):
+    from tests.v2.test_classroom import seed_teacher_user
+    from tests.v2.test_teacher_grade_application import login_user
+
+    teacher = seed_teacher_user(db_session, login_id="admin_member_teacher2")
+    teacher_token = login_user(client, "admin_member_teacher2")
+    client.post(
+        "/api/v2/classes",
+        headers={"Authorization": f"Bearer {teacher_token}"},
+        json={"name": "지도자 반 1", "entry_code_suffix": "OWN1"},
+    )
+    client.post(
+        "/api/v2/classes",
+        headers={"Authorization": f"Bearer {teacher_token}"},
+        json={"name": "지도자 반 2", "entry_code_suffix": "OWN2"},
+    )
+
+    response = client.get(
+        f"/api/v2/admin/users/{teacher.id}",
+        headers=login_headers(client, SUPERADMIN_USERNAME, SUPERADMIN_PASSWORD),
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data["classes"]) == 2
+    class_names = {item["class_name"] for item in data["classes"]}
+    assert class_names == {"지도자 반 1", "지도자 반 2"}
+    assert all(item["joined_at"] is None for item in data["classes"])
+
+
+@pytest.mark.usefixtures("jwt_env", "superadmin_user")
+def test_get_user_play_sessions(client, db_session):
+    from datetime import datetime, timezone
+
+    from tests.v2.test_admin_play_session_admin import seed_play_session
+
+    user = seed_user(db_session, login_id="member_play_sessions")
+    seed_play_session(
+        db_session,
+        session_id="session-user-admin-1",
+        user_id=user.id,
+        character_name="이황",
+        scenario_title="처음 만난 조선",
+        completed_at=datetime(2026, 3, 1, tzinfo=timezone.utc),
+    )
+    seed_play_session(
+        db_session,
+        session_id="session-user-admin-2",
+        user_id=user.id,
+        character_name="정약용",
+        scenario_title="변화의 바람",
+        completed_at=datetime(2026, 3, 2, tzinfo=timezone.utc),
+    )
+    db_session.commit()
+    headers = login_headers(client, SUPERADMIN_USERNAME, SUPERADMIN_PASSWORD)
+
+    detail_response = client.get(f"/api/v2/admin/users/{user.id}", headers=headers)
+    assert detail_response.status_code == 200
+    assert detail_response.json()["play_session_summary"]["completed_count"] == 2
+
+    list_response = client.get(
+        f"/api/v2/admin/users/{user.id}/play-sessions?page=1&page_size=5",
+        headers=headers,
+    )
+    assert list_response.status_code == 200
+    data = list_response.json()
+    assert data["total"] == 2
+    assert len(data["items"]) == 2
+    assert data["summary"]["completed_count"] == 2
+    assert data["items"][0]["character_name"] in {"이황", "정약용"}
 
 
 @pytest.mark.usefixtures("jwt_env", "superadmin_user")

@@ -5,7 +5,12 @@ from sqlalchemy.orm import Session
 
 from db.database import get_db
 from db.models import AdminRole, AuthProvider, UserGrade
-from models.auth.user import AdminMemberResponse, AdminMemberUpdate
+from models.auth.user import (
+    AdminMemberDetailResponse,
+    AdminMemberResponse,
+    AdminMemberUpdate,
+    UserPlaySessionListResponse,
+)
 from models.common.pagination import ALLOWED_PAGE_SIZES, PaginatedResponse
 from repositories.auth import user as user_repository
 from router.v2.deps import require_roles
@@ -64,14 +69,46 @@ def list_users(
     )
 
 
-@admin_router.get("/{user_id}", response_model=AdminMemberResponse)
+@admin_router.get("/{user_id}", response_model=AdminMemberDetailResponse)
 def get_user(user_id: int, db: Session = Depends(get_db)):
-    """어드민 — 회원 상세."""
+    """어드민 — 회원 상세 (클래스 소속/보유 목록 포함)."""
     try:
-        user = user_repository.get_user_for_admin_by_id(db, user_id)
+        user = user_repository.get_user_detail_for_admin(db, user_id)
     except user_repository.UserNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
-    return AdminMemberResponse.model_validate(user)
+    return AdminMemberDetailResponse.model_validate(user)
+
+
+@admin_router.get("/{user_id}/play-sessions", response_model=UserPlaySessionListResponse)
+def list_user_play_sessions(
+    user_id: int,
+    page: int = Query(1, ge=1, description="페이지 번호"),
+    page_size: int = Query(5, ge=1, le=100, description="페이지당 항목 수"),
+    db: Session = Depends(get_db),
+):
+    """어드민 — 회원별 완료한 시뮬레이션 기록."""
+    try:
+        user_repository.get_user_for_admin_by_id(db, user_id)
+    except user_repository.UserNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+    items, total, average_history_score = user_repository.list_play_sessions_for_user_admin(
+        db,
+        user_id,
+        page=page,
+        page_size=page_size,
+    )
+    return UserPlaySessionListResponse(
+        items=items,
+        page=page,
+        page_size=page_size,
+        total=total,
+        total_pages=(total + page_size - 1) // page_size if total > 0 else 0,
+        summary={
+            "completed_count": total,
+            "average_history_score": average_history_score,
+        },
+    )
 
 
 @admin_router.patch("/{user_id}", response_model=AdminMemberResponse)

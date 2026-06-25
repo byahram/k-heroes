@@ -13,11 +13,15 @@ import { AdminPageHeader } from "@/app/(admin)/_components/admin-page-header";
 import { AdminSelect } from "@/app/(admin)/_components/admin-select";
 import { AdminSlidePanel } from "@/app/(admin)/_components/admin-slide-panel";
 import {
+  useAdminMember,
+  useAdminMemberPlaySessions,
   useAdminMembers,
   useDeleteAdminMember,
   useUpdateAdminMember,
 } from "@/app/(admin)/_hooks/use-admin-members";
 import { AdminApiError } from "@/app/(admin)/_lib/admin-api";
+import { MemberPlaySessionSection } from "@/app/(admin)/admin/(dashboard)/users/_components/member-play-session-section";
+import { MemberClassSection } from "@/app/(admin)/admin/(dashboard)/users/_components/member-class-section";
 import { MemberPanelForm } from "@/app/(admin)/admin/(dashboard)/users/_components/member-panel-form";
 import { MemberTable } from "@/app/(admin)/admin/(dashboard)/users/_components/member-table";
 import type {
@@ -55,8 +59,15 @@ export default function UsersPage() {
   const [emailQuery, setEmailQuery] = useState("");
   const [submittedFilters, setSubmittedFilters] = useState<MemberListFilters>(emptyFilters);
   const [panelError, setPanelError] = useState("");
+  const [sessionPage, setSessionPage] = useState(0);
 
   const membersQuery = useAdminMembers(page, pageSize, submittedFilters);
+  const memberDetailQuery = useAdminMember(selectedMember?.id ?? 0, selectedMember !== null);
+  const memberPlaySessionsQuery = useAdminMemberPlaySessions(
+    selectedMember?.id ?? 0,
+    sessionPage + 1,
+    selectedMember !== null,
+  );
   const updateMember = useUpdateAdminMember();
   const deleteMember = useDeleteAdminMember();
 
@@ -77,11 +88,13 @@ export default function UsersPage() {
 
   function openEditPanel(member: MemberListItem) {
     setSelectedMember(member);
+    setSessionPage(0);
     setPanelError("");
   }
 
   function resetPanel() {
     setSelectedMember(null);
+    setSessionPage(0);
     setPanelError("");
   }
 
@@ -293,6 +306,35 @@ export default function UsersPage() {
             onSubmit={handleSubmit}
           >
             <MemberPanelForm member={selectedMember} />
+            <MemberClassSection
+              key={`classes-${selectedMember.id}`}
+              classes={memberDetailQuery.data?.classes ?? []}
+              errorMessage={
+                memberDetailQuery.isError ? "클래스 정보를 불러오지 못했습니다." : null
+              }
+              grade={selectedMember.grade}
+              isLoading={memberDetailQuery.isLoading}
+              total={memberDetailQuery.data?.classes.length}
+            />
+            <MemberPlaySessionSection
+              key={`sessions-${selectedMember.id}`}
+              currentPage={sessionPage}
+              errorMessage={
+                memberPlaySessionsQuery.isError
+                  ? "시뮬레이션 기록을 불러오지 못했습니다."
+                  : null
+              }
+              isLoading={memberPlaySessionsQuery.isLoading}
+              onPageChange={setSessionPage}
+              sessions={memberPlaySessionsQuery.data?.items ?? []}
+              summary={
+                memberPlaySessionsQuery.data?.summary ??
+                memberDetailQuery.data?.play_session_summary ??
+                null
+              }
+              total={memberPlaySessionsQuery.data?.total ?? 0}
+              totalPages={memberPlaySessionsQuery.data?.total_pages ?? 0}
+            />
             {panelError ? (
               <p
                 aria-live="polite"

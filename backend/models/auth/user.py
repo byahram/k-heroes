@@ -21,6 +21,26 @@ class AdminMemberResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class AdminMemberClassSummary(BaseModel):
+    class_id: int
+    class_name: str
+    entry_code: str
+    is_active: bool
+    joined_at: Optional[datetime] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class AdminMemberPlaySessionSummary(BaseModel):
+    completed_count: int
+    average_history_score: Optional[float] = None
+
+
+class AdminMemberDetailResponse(AdminMemberResponse):
+    classes: list[AdminMemberClassSummary] = []
+    play_session_summary: AdminMemberPlaySessionSummary
+
+
 class AdminMemberUpdate(BaseModel):
     name: Optional[str] = Field(None, max_length=100, description="이름")
     nickname: Optional[str] = Field(None, max_length=100, description="닉네임")

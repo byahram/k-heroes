@@ -61,3 +61,58 @@ export async function fetchAuthApiJson<T>(path: string, init?: RequestInit): Pro
 
   return (await response.json()) as T;
 }
+
+function parseDownloadFilename(contentDisposition: string | null, fallback: string) {
+  if (!contentDisposition) {
+    return fallback;
+  }
+
+  const utf8Match = contentDisposition.match(/filename\*=UTF-8''([^;]+)/i);
+  if (utf8Match?.[1]) {
+    try {
+      return decodeURIComponent(utf8Match[1]);
+    } catch {
+      return utf8Match[1];
+    }
+  }
+
+  const filenameMatch = contentDisposition.match(/filename="([^"]+)"/i);
+  if (filenameMatch?.[1]) {
+    return filenameMatch[1];
+  }
+
+  return fallback;
+}
+
+export async function downloadAuthApiFile(path: string, fallbackFilename: string) {
+  const response = await fetch(getAuthApiUrl(path), {
+    credentials: "include",
+  });
+
+  if (!response.ok) {
+    let message = "요청을 처리하지 못했습니다.";
+
+    try {
+      const data = (await response.json()) as AuthApiErrorDetail;
+      message = extractErrorMessage(data.detail);
+    } catch {
+      // JSON 오류 응답이 아니면 기본 메시지를 사용합니다.
+    }
+
+    throw new AuthApiError(response.status, message);
+  }
+
+  const blob = await response.blob();
+  const filename = parseDownloadFilename(
+    response.headers.get("Content-Disposition"),
+    fallbackFilename,
+  );
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(url);
+}
