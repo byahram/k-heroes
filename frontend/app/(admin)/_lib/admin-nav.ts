@@ -5,6 +5,7 @@ import {
   GitBranch,
   GraduationCap,
   LayoutDashboard,
+  School,
   Tags,
   UserCog,
   Users,
@@ -42,6 +43,7 @@ export const adminNavGroups: AdminNavGroup[] = [
     items: [
       { title: "회원", href: "/admin/users", icon: Contact },
       { title: "지도자 등급 신청", href: "/admin/teacher-grade-applications", icon: GraduationCap },
+      { title: "클래스", href: "/admin/classes", icon: School },
     ],
   },
   {

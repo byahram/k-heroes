@@ -1,8 +1,8 @@
 """Add deleted_at to users table.
 
-Revision ID: 20260626_02_add_user_deleted_at
-Revises: 20260626_01_add_teacher_grade_applications
-Create Date: 2026-06-26 00:00:00.000000
+Revision ID: 20260625_04_add_user_deleted_at
+Revises: 20260625_03_add_teacher_grade_applications
+Create Date: 2026-06-25 00:00:00.000000
 """
 from __future__ import annotations
 
@@ -11,8 +11,8 @@ import sqlalchemy as sa
 from sqlalchemy import inspect
 
 
-revision = "20260626_02_add_user_deleted_at"
-down_revision = "20260626_01_add_teacher_grade_applications"
+revision = "20260625_04_add_user_deleted_at"
+down_revision = "20260625_03_add_teacher_grade_applications"
 branch_labels = None
 depends_on = None
 

@@ -1,8 +1,8 @@
 """Add teacher_grade_applications table.
 
-Revision ID: 20260626_01_add_teacher_grade_applications
+Revision ID: 20260625_03_add_teacher_grade_applications
 Revises: 20260625_02_make_user_password_hash_nullable
-Create Date: 2026-06-26 00:00:00.000000
+Create Date: 2026-06-25 00:00:00.000000
 """
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ import sqlalchemy as sa
 from sqlalchemy import inspect
 
 
-revision = "20260626_01_add_teacher_grade_applications"
+revision = "20260625_03_add_teacher_grade_applications"
 down_revision = "20260625_02_make_user_password_hash_nullable"
 branch_labels = None
 depends_on = None

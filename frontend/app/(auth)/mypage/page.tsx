@@ -126,7 +126,15 @@ export default function MypagePage() {
                       application={teacherGradeApplicationQuery.data ?? null}
                       user={user}
                     />
-                  ) : null}
+                  ) : (
+                    <AuthButton
+                      className="h-11 w-auto px-5"
+                      onClick={() => router.push("/classes")}
+                      type="button"
+                    >
+                      내 클래스 관리
+                    </AuthButton>
+                  )}
                 </>
               }
               user={user}

@@ -44,7 +44,7 @@ export type PlaySessionListResponse = {
 
 export const gradeLabels: Record<UserGrade, string> = {
   student: "학생",
-  teacher: "교사",
+  teacher: "지도자",
 };
 
 export const authProviderLabels: Record<AuthProvider, string> = {

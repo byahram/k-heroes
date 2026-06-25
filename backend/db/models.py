@@ -258,6 +258,53 @@ class User(SoftDeleteMixin, Base):
         back_populates="user",
         order_by="TeacherGradeApplication.created_at.desc()",
     )
+    taught_classes: Mapped[list["ClassRoom"]] = relationship(
+        back_populates="teacher",
+        order_by="ClassRoom.created_at.desc()",
+    )
+    class_memberships: Mapped[list["ClassMembership"]] = relationship(
+        back_populates="user",
+        order_by="ClassMembership.joined_at.desc()",
+    )
+
+
+class ClassRoom(Base):
+    __tablename__ = "classes"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    teacher_user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    name: Mapped[str] = mapped_column(String(100), nullable=False)
+    entry_code: Mapped[str] = mapped_column(String(20), unique=True, nullable=False, index=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now(), onupdate=func.now()
+    )
+
+    teacher: Mapped["User"] = relationship(back_populates="taught_classes")
+    memberships: Mapped[list["ClassMembership"]] = relationship(
+        back_populates="class_room",
+        order_by="ClassMembership.joined_at.desc()",
+    )
+
+
+class ClassMembership(Base):
+    __tablename__ = "class_memberships"
+    __table_args__ = (UniqueConstraint("class_id", "user_id", name="uq_class_memberships_class_user"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    class_id: Mapped[int] = mapped_column(ForeignKey("classes.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    joined_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now(), onupdate=func.now()
+    )
+
+    class_room: Mapped["ClassRoom"] = relationship(back_populates="memberships")
+    user: Mapped["User"] = relationship(back_populates="class_memberships")
 
 
 class TeacherGradeApplication(Base):

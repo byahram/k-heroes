@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from core.security import ADMIN_SESSION_COOKIE, USER_SESSION_COOKIE, decode_access_token, get_jwt_secret
 from db.database import get_db
 from db.models import AdminRole, AdminUser
-from db.models import User
+from db.models import User, UserGrade
 
 security = HTTPBearer(auto_error=False)
 user_security = HTTPBearer(auto_error=False)
@@ -78,6 +78,12 @@ def get_current_user(
     if not user or user.deleted_at is not None:
         raise HTTPException(status_code=401, detail="사용할 수 없는 회원 계정입니다.")
     return user
+
+
+def require_teacher(current_user: User = Depends(get_current_user)) -> User:
+    if current_user.grade != UserGrade.TEACHER:
+        raise HTTPException(status_code=403, detail="지도자만 이용할 수 있습니다.")
+    return current_user
 
 
 def get_optional_current_user(
