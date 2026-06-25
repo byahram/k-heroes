@@ -198,6 +198,12 @@ class AuthProvider(str, enum.Enum):
     GOOGLE = "google"
 
 
+class TeacherGradeApplicationStatus(str, enum.Enum):
+    PENDING = "pending"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+
+
 class AdminUser(SoftDeleteMixin, Base):
     __tablename__ = "admins"
 
@@ -248,6 +254,37 @@ class User(Base):
 
     play_sessions: Mapped[list["PlaySession"]] = relationship(back_populates="user")
     scenario_progress: Mapped[list["UserScenarioProgress"]] = relationship(back_populates="user")
+    teacher_grade_applications: Mapped[list["TeacherGradeApplication"]] = relationship(
+        back_populates="user",
+        order_by="TeacherGradeApplication.created_at.desc()",
+    )
+
+
+class TeacherGradeApplication(Base):
+    __tablename__ = "teacher_grade_applications"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    school_name: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
+    status: Mapped[TeacherGradeApplicationStatus] = mapped_column(
+        Enum(TeacherGradeApplicationStatus, native_enum=False, length=20),
+        nullable=False,
+        default=TeacherGradeApplicationStatus.PENDING,
+        server_default=TeacherGradeApplicationStatus.PENDING.value,
+    )
+    reviewer_admin_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("admins.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    review_note: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    reviewed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now(), onupdate=func.now()
+    )
+
+    user: Mapped["User"] = relationship(back_populates="teacher_grade_applications")
+    reviewer_admin: Mapped[Optional["AdminUser"]] = relationship()
 
 
 class PlaySession(Base):

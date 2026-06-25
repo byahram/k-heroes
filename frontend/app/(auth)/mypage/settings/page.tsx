@@ -82,6 +82,11 @@ function AccountSettingsForm({ user }: AccountSettingsFormProps) {
     setErrorDialogOpen(true);
   }
 
+  function handleSuccessDialogClose() {
+    setSuccessDialogOpen(false);
+    router.push("/mypage");
+  }
+
   async function submitSettings(data: AccountSettingsFormValues) {
     setErrorDialogOpen(false);
     setErrorDialogMessage("");
@@ -358,7 +363,14 @@ function AccountSettingsForm({ user }: AccountSettingsFormProps) {
       </DialogContent>
     </Dialog>
 
-    <Dialog open={successDialogOpen} onOpenChange={setSuccessDialogOpen}>
+    <Dialog
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen) {
+          handleSuccessDialogClose();
+        }
+      }}
+      open={successDialogOpen}
+    >
       <DialogContent className="border-[rgba(42,66,50,0.12)] bg-[#FDFAF4] sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="text-[#1A1714]" style={{ fontFamily: "'Noto Serif KR', serif" }}>
@@ -370,7 +382,7 @@ function AccountSettingsForm({ user }: AccountSettingsFormProps) {
         </DialogHeader>
 
         <DialogFooter>
-          <AuthButton className="w-full" onClick={() => setSuccessDialogOpen(false)} type="button">
+          <AuthButton className="w-full" onClick={handleSuccessDialogClose} type="button">
             확인
           </AuthButton>
         </DialogFooter>

@@ -11,6 +11,7 @@ import {
 } from "@/components/mypage/mypage-sections";
 import { emptySessionHistoryFilters, type SessionHistoryFilters } from "@/components/mypage/mypage-session-filters";
 import { TeacherGradeApplyDialog } from "@/components/mypage/teacher-grade-apply";
+import { useTeacherGradeApplication } from "@/hooks/use-teacher-grade-application";
 import {
   Dialog,
   DialogContent,
@@ -27,6 +28,7 @@ const SESSION_PAGE_SIZE = 5;
 export default function MypagePage() {
   const router = useRouter();
   const authMeQuery = useAuthMe();
+  const teacherGradeApplicationQuery = useTeacherGradeApplication(Boolean(authMeQuery.data));
   const [filters, setFilters] = useState<SessionHistoryFilters>(emptySessionHistoryFilters);
   const [submittedFilters, setSubmittedFilters] = useState<SessionHistoryFilters>(emptySessionHistoryFilters);
   const [page, setPage] = useState(0);
@@ -90,7 +92,7 @@ export default function MypagePage() {
   return (
     <>
       <SitePageShell>
-        <div className="mx-auto max-w-4xl px-6 py-10 sm:py-14">
+        <div className="mx-auto max-w-4xl px-6 py-10 pb-28 sm:py-14 sm:pb-32">
           <header className="mb-8 sm:mb-10">
             <p
               className="text-sm font-medium text-[#3D6B52]"
@@ -119,7 +121,12 @@ export default function MypagePage() {
             <MypageAccountInfo
               footer={
                 <>
-                  {user.grade === "student" ? <TeacherGradeApplyDialog /> : null}
+                  {user.grade === "student" ? (
+                    <TeacherGradeApplyDialog
+                      application={teacherGradeApplicationQuery.data ?? null}
+                      user={user}
+                    />
+                  ) : null}
                 </>
               }
               user={user}
@@ -138,22 +145,30 @@ export default function MypagePage() {
               totalPages={sessionsData?.total_pages ?? 0}
               values={filters}
             />
+          </div>
+        </div>
 
-            <div className="flex gap-3">
-              <AuthButton className="min-w-0 flex-1" onClick={() => router.push("/map")} type="button">
-                새 이야기 시작하기
-              </AuthButton>
-              <AuthButton
-                className="min-w-0 flex-1"
-                isLoading={isLoggingOut}
-                loadingText="로그아웃 중..."
-                onClick={handleLogout}
-                type="button"
-                variant="secondary"
-              >
-                로그아웃
-              </AuthButton>
-            </div>
+        <div
+          className="fixed inset-x-0 bottom-0 z-40 border-t backdrop-blur-md"
+          style={{
+            borderColor: "rgba(42,66,50,0.12)",
+            background: "rgba(253,250,244,0.92)",
+          }}
+        >
+          <div className="mx-auto flex max-w-4xl gap-3 px-6 py-4">
+            <AuthButton className="min-w-0 flex-1" onClick={() => router.push("/map")} type="button">
+              새 이야기 시작하기
+            </AuthButton>
+            <AuthButton
+              className="min-w-0 flex-1"
+              isLoading={isLoggingOut}
+              loadingText="로그아웃 중..."
+              onClick={handleLogout}
+              type="button"
+              variant="secondary"
+            >
+              로그아웃
+            </AuthButton>
           </div>
         </div>
       </SitePageShell>
