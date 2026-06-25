@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AuthButton } from "@/components/auth/auth-button";
 import { SitePageShell } from "@/components/layout/site-page-shell";
+import { MypageMyClasses } from "@/components/mypage/mypage-my-classes";
+import { STUDENT_CLASS_PAGE_SIZE } from "@/lib/classroom/types";
 import {
   MypageAccountInfo,
   MypageProfileCard,
@@ -21,6 +23,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useAuthMe } from "@/hooks/use-auth-me";
+import { useJoinStudentClass, useStudentClasses } from "@/hooks/use-student-classes";
 import { useMySessions } from "@/hooks/use-my-sessions";
 import { useLogout } from "@/hooks/use-logout";
 const SESSION_PAGE_SIZE = 5;
@@ -32,6 +35,7 @@ export default function MypagePage() {
   const [filters, setFilters] = useState<SessionHistoryFilters>(emptySessionHistoryFilters);
   const [submittedFilters, setSubmittedFilters] = useState<SessionHistoryFilters>(emptySessionHistoryFilters);
   const [page, setPage] = useState(0);
+  const [classPage, setClassPage] = useState(0);
   const { handleLogout, isLoggingOut, logoutDialogOpen, setLogoutDialogOpen } = useLogout();
   const sessionsQuery = useMySessions(
     {
@@ -46,6 +50,14 @@ export default function MypagePage() {
   );
 
   const sessionsData = sessionsQuery.data;
+  const isStudent = authMeQuery.data?.grade === "student";
+  const studentClassesQuery = useStudentClasses(
+    classPage + 1,
+    STUDENT_CLASS_PAGE_SIZE,
+    Boolean(authMeQuery.data && isStudent),
+  );
+  const joinStudentClass = useJoinStudentClass();
+  const studentClassesData = studentClassesQuery.data;
 
   useEffect(() => {
     if (!authMeQuery.isLoading && authMeQuery.data === null) {
@@ -85,6 +97,11 @@ export default function MypagePage() {
     setPage(0);
   }
 
+  async function handleJoinClass(entryCode: string) {
+    await joinStudentClass.mutateAsync({ entry_code: entryCode });
+    setClassPage(0);
+  }
+
   if (!user) {
     return null;
   }
@@ -107,7 +124,9 @@ export default function MypagePage() {
               마이페이지
             </h1>
             <p className="mt-3 text-sm leading-relaxed text-[#6B6458] sm:text-base">
-              나의 계정 정보와 완료한 시뮬레이션 기록을 확인할 수 있습니다.
+              {user.grade === "student"
+                ? "나의 계정 정보, 클래스, 완료한 시뮬레이션 기록을 확인할 수 있습니다."
+                : "나의 계정 정보와 완료한 시뮬레이션 기록을 확인할 수 있습니다."}
             </p>
           </header>
 
@@ -139,6 +158,24 @@ export default function MypagePage() {
               }
               user={user}
             />
+
+            {user.grade === "student" ? (
+              <MypageMyClasses
+                classes={studentClassesData?.items ?? []}
+                currentPage={classPage}
+                errorMessage={
+                  studentClassesQuery.isError
+                    ? "클래스 목록을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요."
+                    : null
+                }
+                isJoining={joinStudentClass.isPending}
+                isLoading={studentClassesQuery.isLoading}
+                onJoin={handleJoinClass}
+                onPageChange={setClassPage}
+                total={studentClassesData?.total ?? 0}
+                totalPages={studentClassesData?.total_pages ?? 0}
+              />
+            ) : null}
 
             <MypageSessionHistory
               currentPage={page}

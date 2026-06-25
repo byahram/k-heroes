@@ -70,3 +70,20 @@ class AdminClassRoomResponse(BaseModel):
 
 class AdminClassRoomDetailResponse(AdminClassRoomResponse):
     members: list[ClassMemberResponse]
+
+
+class ClassJoinRequest(BaseModel):
+    entry_code: str = Field(..., min_length=1, max_length=16, description="클래스 입장코드 전체")
+
+    model_config = ConfigDict(extra="forbid")
+
+
+class StudentClassResponse(BaseModel):
+    membership_id: int
+    class_id: int
+    class_name: str
+    entry_code: str
+    joined_at: datetime
+    is_class_active: bool
+
+    model_config = ConfigDict(from_attributes=True)

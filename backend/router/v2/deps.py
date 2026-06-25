@@ -86,6 +86,12 @@ def require_teacher(current_user: User = Depends(get_current_user)) -> User:
     return current_user
 
 
+def require_student(current_user: User = Depends(get_current_user)) -> User:
+    if current_user.grade != UserGrade.STUDENT:
+        raise HTTPException(status_code=403, detail="학생만 이용할 수 있습니다.")
+    return current_user
+
+
 def get_optional_current_user(
     credentials: Optional[HTTPAuthorizationCredentials] = Depends(user_security),
     session_token: Optional[str] = Cookie(default=None, alias=USER_SESSION_COOKIE),

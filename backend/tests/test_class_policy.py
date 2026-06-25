@@ -30,3 +30,16 @@ def test_normalize_entry_code_suffix_rejects_too_short_value():
 def test_normalize_entry_code_suffix_rejects_whitespace():
     with pytest.raises(InvalidEntryCodeError):
         normalize_entry_code_suffix("4학년 1반")
+
+
+def test_normalize_entry_code_accepts_full_code():
+    from core.class_policy import normalize_entry_code
+
+    assert normalize_entry_code(f"{current_year_prefix()}4A1") == f"{current_year_prefix()}4A1"
+
+
+def test_normalize_entry_code_rejects_short_value():
+    from core.class_policy import normalize_entry_code
+
+    with pytest.raises(InvalidEntryCodeError):
+        normalize_entry_code("2026A")

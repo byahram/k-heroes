@@ -7,6 +7,7 @@ from router.v2 import auth as auth_v2, admin_auth as admin_auth_v2, admin_play_s
 from router.v2.auth import teacher_grade_application as teacher_grade_application_v2, user_admin as user_admin_v2
 from router.v2.classroom.classroom import router as classroom_router
 from router.v2.classroom.classroom_admin import admin_router as classroom_admin_router
+from router.v2.classroom.classroom_student import router as classroom_student_router
 import simulation_data_manager
 
 app = FastAPI()
@@ -40,6 +41,7 @@ app.add_middleware(
 app.include_router(auth_v2.router)
 app.include_router(teacher_grade_application_v2.router)
 app.include_router(classroom_router)
+app.include_router(classroom_student_router)
 app.include_router(classroom_admin_router)
 app.include_router(character_category_v2.router)
 app.include_router(character_v2.router)

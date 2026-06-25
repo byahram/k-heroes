@@ -7,6 +7,7 @@ from core.class_policy import (
     InvalidClassNameError,
     build_entry_code,
     normalize_class_name,
+    normalize_entry_code,
 )
 from db.models import ClassMembership, ClassRoom, User, UserGrade
 
@@ -31,6 +32,26 @@ class ClassRoomDuplicateEntryCodeError(Exception):
     def __init__(self, entry_code: str):
         self.entry_code = entry_code
         super().__init__(f"이미 사용 중인 입장코드입니다. ({entry_code})")
+
+
+class ClassRoomEntryCodeNotFoundError(Exception):
+    def __init__(self):
+        super().__init__("입장코드를 찾을 수 없습니다.")
+
+
+class ClassRoomInactiveError(Exception):
+    def __init__(self):
+        super().__init__("비활성화된 클래스입니다. 선생님에게 문의해 주세요.")
+
+
+class ClassRoomAlreadyMemberError(Exception):
+    def __init__(self):
+        super().__init__("이미 가입한 클래스입니다.")
+
+
+class ClassRoomStudentRequiredError(Exception):
+    def __init__(self):
+        super().__init__("학생만 클래스에 가입할 수 있습니다.")
 
 
 def _count_active_members(db: Session, class_id: int) -> int:
@@ -87,6 +108,22 @@ def _get_class_for_teacher_or_raise(db: Session, teacher_user_id: int, class_id:
 def ensure_teacher_user(user: User) -> None:
     if user.grade != UserGrade.TEACHER:
         raise ClassRoomTeacherRequiredError()
+
+
+def ensure_student_user(user: User) -> None:
+    if user.grade != UserGrade.STUDENT:
+        raise ClassRoomStudentRequiredError()
+
+
+def _to_student_class_response(membership: ClassMembership, class_room: ClassRoom) -> dict:
+    return {
+        "membership_id": membership.id,
+        "class_id": class_room.id,
+        "class_name": class_room.name,
+        "entry_code": class_room.entry_code,
+        "joined_at": membership.joined_at,
+        "is_class_active": class_room.is_active,
+    }
 
 
 def list_classes_for_teacher(
@@ -268,3 +305,70 @@ def get_class_detail_for_admin(db: Session, class_id: int) -> dict:
         ),
         "members": _list_members_for_class(db, class_id),
     }
+
+
+def list_classes_for_student(
+    db: Session,
+    student_user_id: int,
+    *,
+    page: int = 1,
+    page_size: int = 5,
+) -> Tuple[List[dict], int]:
+    query = (
+        select(ClassMembership)
+        .join(ClassRoom, ClassMembership.class_id == ClassRoom.id)
+        .where(
+            ClassMembership.user_id == student_user_id,
+            ClassMembership.is_active.is_(True),
+        )
+        .options(selectinload(ClassMembership.class_room))
+    )
+
+    total = db.scalar(select(func.count()).select_from(query.subquery())) or 0
+    memberships = db.scalars(
+        query.order_by(ClassMembership.joined_at.desc())
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+    ).all()
+
+    return [
+        _to_student_class_response(membership, membership.class_room)
+        for membership in memberships
+        if membership.class_room is not None
+    ], total
+
+
+def join_class_by_entry_code(db: Session, student: User, entry_code: str) -> dict:
+    ensure_student_user(student)
+    normalized_code = normalize_entry_code(entry_code)
+
+    class_room = db.scalar(select(ClassRoom).where(ClassRoom.entry_code == normalized_code))
+    if not class_room:
+        raise ClassRoomEntryCodeNotFoundError()
+    if not class_room.is_active:
+        raise ClassRoomInactiveError()
+
+    existing = db.scalar(
+        select(ClassMembership).where(
+            ClassMembership.class_id == class_room.id,
+            ClassMembership.user_id == student.id,
+        )
+    )
+    if existing:
+        if existing.is_active:
+            raise ClassRoomAlreadyMemberError()
+        existing.is_active = True
+        db.flush()
+        db.refresh(existing)
+        membership = existing
+    else:
+        membership = ClassMembership(
+            class_id=class_room.id,
+            user_id=student.id,
+            is_active=True,
+        )
+        db.add(membership)
+        db.flush()
+        db.refresh(membership)
+
+    return _to_student_class_response(membership, class_room)

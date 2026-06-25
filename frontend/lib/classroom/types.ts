@@ -30,3 +30,22 @@ export type ClassRoomListResponse = {
   total: number;
   total_pages: number;
 };
+
+export type StudentClassItem = {
+  membership_id: number;
+  class_id: number;
+  class_name: string;
+  entry_code: string;
+  joined_at: string;
+  is_class_active: boolean;
+};
+
+export type StudentClassListResponse = {
+  items: StudentClassItem[];
+  page: number;
+  page_size: number;
+  total: number;
+  total_pages: number;
+};
+
+export const STUDENT_CLASS_PAGE_SIZE = 5;
