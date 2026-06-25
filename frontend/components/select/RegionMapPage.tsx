@@ -1,7 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { ArrowLeft, ChevronRight, Search, X, ChevronLeft } from "lucide-react";
 import mapBg from "@/public/images/image-15.png";
-import { CHARACTERS } from "@/lib/data/characters";
 import { PagePagination } from "@/components/ui/page-pagination";
 import { BrandLogo } from "@/components/layout/BrandLogo";
 
@@ -102,18 +101,6 @@ interface CharacterCardData {
   imageUrl: string;
   keywords: string[];
 }
-
-const STATIC_CHARACTER_CARDS: CharacterCardData[] = Object.values(CHARACTERS).map((char) => ({
-  id: char.id,
-  name: char.name,
-  category: "",
-  era: char.era,
-  role: char.role,
-  tagline: char.tagline,
-  mbti: char.mbti,
-  imageUrl: char.img,
-  keywords: char.tags,
-}));
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
 let allCharactersCache: CharacterCardData[] | null = null;
@@ -704,9 +691,9 @@ export function RegionMapPage({
   const [desktopPage, setDesktopPage] = useState(0);
   const [mobileShown, setMobileShown] = useState(PAGE_SIZE_MOBILE);
   const [allCharacters, setAllCharacters] = useState<CharacterCardData[]>(
-    allCharactersCache ?? STATIC_CHARACTER_CARDS
+    allCharactersCache ?? []
   );
-  const [isLoadingCharacters, setIsLoadingCharacters] = useState(false);
+  const [isLoadingCharacters, setIsLoadingCharacters] = useState(!allCharactersCache);
   const [characterError, setCharacterError] = useState<string | null>(null);
   const [introReady, setIntroReady] = useState(false);
 
@@ -740,8 +727,8 @@ export function RegionMapPage({
       .catch((error: unknown) => {
         if (ignore) return;
         console.error(error);
-        setAllCharacters(STATIC_CHARACTER_CARDS);
-        setCharacterError("인물 API를 불러오지 못해 임시 데이터를 표시하고 있습니다.");
+        setAllCharacters([]);
+        setCharacterError("인물 API를 불러오지 못했습니다.");
       })
       .finally(() => {
         if (!ignore) setIsLoadingCharacters(false);
@@ -992,6 +979,22 @@ export function RegionMapPage({
         }
         .kh-scrollbar::-webkit-scrollbar-thumb:hover {
           background: linear-gradient(180deg, rgba(90, 74, 50, 0.36), rgba(42, 66, 50, 0.48));
+        }
+        @keyframes khSelectSkeletonPulse {
+          0%, 100% { opacity: 0.34; }
+          50% { opacity: 0.68; }
+        }
+        @keyframes khSelectSkeletonWash {
+          0% { opacity: 0; transform: translateX(-86%) skewX(-7deg); }
+          24% { opacity: 0.72; }
+          100% { opacity: 0; transform: translateX(138%) skewX(-7deg); }
+        }
+        .kh-select-skeleton {
+          background: rgba(42,66,50,0.08);
+          animation: khSelectSkeletonPulse 1.2s ease-in-out infinite;
+        }
+        .kh-select-skeleton-wash {
+          animation: khSelectSkeletonWash 1.2s ease-in-out infinite;
         }
       `}</style>
 
@@ -1361,7 +1364,9 @@ export function RegionMapPage({
 
           {/* ── PC: 카드 목록 + 페이지네이션 ── */}
           <div className="hidden md:flex flex-1 flex-col overflow-hidden">
-            {filteredChars.length === 0 ? (
+            {isLoadingCharacters ? (
+              <CharacterListSkeleton count={PAGE_SIZE_DESKTOP} />
+            ) : filteredChars.length === 0 ? (
               <EmptyState onReset={() => { setSearchQuery(""); setMbtiFilter(null); setSelectedKeyword("all"); }} />
             ) : (
               <>
@@ -1397,7 +1402,9 @@ export function RegionMapPage({
 
           {/* ── 모바일: 카드 목록 + 더보기 ── */}
           <div className="kh-scrollbar md:hidden flex-1 flex flex-col overflow-y-auto gap-3 pr-2">
-            {filteredChars.length === 0 ? (
+            {isLoadingCharacters ? (
+              <CharacterListSkeleton count={PAGE_SIZE_MOBILE} />
+            ) : filteredChars.length === 0 ? (
               <EmptyState onReset={() => { setSearchQuery(""); setMbtiFilter(null); setSelectedKeyword("all"); }} />
             ) : (
               <>
@@ -1446,6 +1453,57 @@ export function RegionMapPage({
 /* ──────────────────────────────────────────
    빈 결과 상태
 ────────────────────────────────────────── */
+function CharacterListSkeleton({ count }: { count: number }) {
+  return (
+    <>
+      <div className="kh-select-skeleton mb-3 h-4 w-28 rounded-full" />
+      <div className="kh-scrollbar flex-1 flex flex-col gap-3 overflow-y-auto pr-2">
+        {Array.from({ length: count }).map((_, index) => (
+          <div
+            key={index}
+            className="relative overflow-hidden rounded-2xl"
+            style={{
+              minHeight: "150px",
+              background: "rgba(248,242,228,0.64)",
+              border: "1px solid rgba(110,80,40,0.13)",
+              boxShadow: "0 4px 18px rgba(90,74,50,0.08)",
+            }}
+          >
+            <div
+              className="absolute inset-y-0 left-0 w-[34%]"
+              style={{
+                background:
+                  "linear-gradient(135deg, rgba(42,66,50,0.08), rgba(154,142,126,0.13), rgba(42,66,50,0.06))",
+              }}
+            />
+            <div className="relative ml-[34%] p-5">
+              <div className="mb-3 flex gap-2">
+                <div className="kh-select-skeleton h-6 w-24 rounded-full" />
+                <div className="kh-select-skeleton h-6 w-14 rounded-full" />
+              </div>
+              <div className="kh-select-skeleton mb-3 h-7 w-24 rounded-lg" />
+              <div className="kh-select-skeleton mb-2 h-4 w-[84%] rounded-full" />
+              <div className="kh-select-skeleton mb-4 h-4 w-[62%] rounded-full" />
+              <div className="flex gap-2">
+                <div className="kh-select-skeleton h-6 w-20 rounded-full" />
+                <div className="kh-select-skeleton h-6 w-16 rounded-full" />
+              </div>
+            </div>
+            <div
+              aria-hidden
+              className="kh-select-skeleton-wash absolute inset-y-0 w-[56%]"
+              style={{
+                background:
+                  "linear-gradient(100deg, rgba(253,250,244,0) 0%, rgba(253,250,244,0.78) 46%, rgba(230,218,190,0.42) 58%, rgba(253,250,244,0) 100%)",
+              }}
+            />
+          </div>
+        ))}
+      </div>
+    </>
+  );
+}
+
 function EmptyState({ onReset }: { onReset: () => void }) {
   return (
     <div

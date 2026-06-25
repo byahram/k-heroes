@@ -5,27 +5,23 @@ import { BrandLogo } from "./BrandLogo";
 type FooterLink = {
   label: string;
   href: string;
+  external?: boolean;
 };
 
 const FOOTER_LINKS: Record<string, FooterLink[]> = {
   서비스: [
-    { label: "서비스 소개", href: "#" },
-    { label: "지역 선택", href: "/map" },
-    { label: "역사 아카이브", href: "#" },
-    { label: "이용 가이드", href: "#" },
+    { label: "서비스소개", href: "/#service" },
+    { label: "대표인물", href: "/#characters" },
+    { label: "활용데이터", href: "/#data" },
   ],
   지원: [
-    { label: "교육기관 문의", href: "#" },
-    { label: "공지사항", href: "#" },
-    { label: "자주 묻는 질문", href: "#" },
-    { label: "이용약관", href: "/legal/terms" },
-    { label: "개인정보처리방침", href: "/legal/privacy" },
+    { label: "교육기관문의", href: "mailto:nightbonus@outlook.com", external: true },
+    { label: "자주 묻는 질문", href: "/faq" },
   ],
   연계기관: [
-    { label: "국립중앙박물관", href: "#" },
-    { label: "국사편찬위원회", href: "#" },
-    { label: "문화재청", href: "#" },
-    { label: "한국학중앙연구원", href: "#" },
+    { label: "문화체육관광부", href: "https://www.mcst.go.kr/", external: true },
+    { label: "한국문화정보원", href: "https://www.kcisa.kr/", external: true },
+    { label: "문화 빅데이터 플랫폼", href: "https://www.bigdata-culture.kr/", external: true },
   ],
 };
 
@@ -72,17 +68,33 @@ export function Footer() {
               <ul className="flex flex-col gap-2.5">
                 {links.map((link) => (
                   <li key={link.label}>
-                    <Link
-                      className="transition-colors hover:text-white"
-                      href={link.href}
-                      style={{
-                        fontFamily: "'Noto Sans KR', sans-serif",
-                        fontSize: "0.8rem",
-                        color: "rgba(255,255,255,0.38)",
-                      }}
-                    >
-                      {link.label}
-                    </Link>
+                    {link.external ? (
+                      <a
+                        className="transition-colors hover:text-white"
+                        href={link.href}
+                        rel={link.href.startsWith("mailto:") ? undefined : "noreferrer"}
+                        target={link.href.startsWith("mailto:") ? undefined : "_blank"}
+                        style={{
+                          fontFamily: "'Noto Sans KR', sans-serif",
+                          fontSize: "0.8rem",
+                          color: "rgba(255,255,255,0.38)",
+                        }}
+                      >
+                        {link.label}
+                      </a>
+                    ) : (
+                      <Link
+                        className="transition-colors hover:text-white"
+                        href={link.href}
+                        style={{
+                          fontFamily: "'Noto Sans KR', sans-serif",
+                          fontSize: "0.8rem",
+                          color: "rgba(255,255,255,0.38)",
+                        }}
+                      >
+                        {link.label}
+                      </Link>
+                    )}
                   </li>
                 ))}
               </ul>

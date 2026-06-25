@@ -7,14 +7,6 @@ import { storyPageBackground } from "@/components/layout/storyPageBackground";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
 
-function getCharIdFromName(name: string): string {
-  const trimmed = name.trim();
-  if (trimmed.includes("이순신")) return "yi_sunsin";
-  if (trimmed.includes("윤봉길")) return "yunbongil";
-  if (trimmed.includes("세종")) return "sejong";
-  return "yunbongil"; // fallback
-}
-
 function ResultInner() {
   const router = useRouter();
   const params = useParams<{ uuid: string }>();
@@ -84,13 +76,14 @@ function ResultInner() {
     );
   }
 
-  const charId = getCharIdFromName(ending.character_name || "");
+  const charId = ending.character_name?.trim() ?? "";
+  const simulationPath = charId ? `/simulation/${encodeURIComponent(charId)}` : "/map";
 
   return (
     <ResultPage
       charId={charId}
       ending={ending}
-      onBack={() => router.push(`/simulation/${charId}`)}
+      onBack={() => router.push(simulationPath)}
       onNextChar={() => router.push("/map")}
     />
   );

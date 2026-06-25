@@ -1,20 +1,11 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, ChevronRight, Clock, BarChart2 } from 'lucide-react';
-import { CHARACTERS, type CharacterData } from '@/lib/data/characters';
-import { getScenariosForChar, type ScenarioMeta } from '@/lib/data/scenarios';
+import { ArrowLeft, Clock, BarChart2 } from 'lucide-react';
 import { BrandLogo } from '@/components/layout/BrandLogo';
 import { storyPageBackground } from '@/components/layout/storyPageBackground';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:8000';
-
-const LEGACY_API_NAMES: Record<string, string> = {
-  'yi-sunsin': '이순신',
-  yi_sunsin: '이순신',
-  yunbongil: '윤봉길',
-  sejong: '세종대왕',
-};
 
 const detailCache = new Map<string, CharacterDetailPayload>();
 const detailRequestCache = new Map<string, Promise<CharacterDetailPayload>>();
@@ -66,6 +57,56 @@ interface CharacterDetailPayload {
   scenarios: ScenarioMeta[];
 }
 
+interface Strength {
+  name: string;
+  score: number;
+  max: number;
+  value: number;
+  desc: string;
+}
+
+interface MbtiType {
+  letter: string;
+  label: string;
+  desc: string;
+}
+
+interface CharacterData {
+  id: string;
+  name: string;
+  role: string;
+  tagline: string;
+  era: string;
+  years: string;
+  situation: string;
+  summary: string;
+  mbti: string;
+  mbtiTitle: string;
+  mbtiSubtitle: string;
+  strengths: Strength[];
+  mbtiTypes: MbtiType[];
+  quote: string;
+  storyIntro: string;
+  img: string;
+  bgImg: string;
+  tags: string[];
+  region: string;
+}
+
+interface ScenarioMeta {
+  id: string;
+  charId: string;
+  index: number;
+  title: string;
+  subtitle: string;
+  period: string;
+  difficulty: '입문' | '중급' | '심화';
+  desc: string;
+  themeIcon: string;
+  stepCount: number;
+  imageUrl?: string;
+}
+
 const MBTI_LABELS: Record<string, string> = {
   E: '외향형',
   I: '내향형',
@@ -81,7 +122,7 @@ const MBTI_DETAIL_KEYS = ['E_I', 'S_N', 'T_F', 'J_P'] as const;
 const DIFFICULTIES = ['입문', '중급', '심화'] as const;
 
 function getApiName(charId: string) {
-  return LEGACY_API_NAMES[charId] ?? charId;
+  return decodeURIComponent(charId);
 }
 
 function normalizeQuote(quote?: string) {
@@ -810,53 +851,46 @@ function ScenarioCard({
         WebkitBackdropFilter: 'blur(5px)',
       }}
     >
-      <div className="flex items-stretch">
+      <div className="flex items-stretch gap-4 sm:gap-6">
         {/* 시나리오 대표 이미지 썸네일 */}
-        {scenario.imageUrl && (
-          <div className="relative w-28 sm:w-32 flex-shrink-0 overflow-hidden" style={{ borderRight: '1px solid rgba(42,66,50,0.08)' }}>
+        <div
+          className="relative w-40 sm:w-52 md:w-60 flex-shrink-0 overflow-hidden"
+          style={{
+            background:
+              'linear-gradient(135deg, rgba(42,66,50,0.08), rgba(154,142,126,0.13), rgba(42,66,50,0.06))',
+          }}
+        >
+          {scenario.imageUrl ? (
             <img
               src={scenario.imageUrl}
               alt={scenario.title}
               className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
             />
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-transparent to-[rgba(253,250,244,0.15)] pointer-events-none" />
-          </div>
-        )}
-
-        {/* 번호 컬럼 */}
-        <div
-          className="flex-shrink-0 flex flex-col items-center justify-start pt-5 px-4"
-          style={{
-            borderRight: '1px solid rgba(42,66,50,0.08)',
-            background: 'rgba(42,66,50,0.018)',
-            minWidth: '52px',
-          }}
-        >
+          ) : null}
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              background:
+                'linear-gradient(90deg, rgba(26,23,20,0.2) 0%, rgba(26,23,20,0.03) 42%, rgba(253,250,244,0.2) 76%, rgba(253,250,244,0.92) 100%)',
+            }}
+          />
           <span
+            className="absolute left-4 top-4"
             style={{
               fontFamily: "'Noto Serif KR', serif",
               fontWeight: 800,
-              fontSize: '1.5rem',
-              color: 'rgba(42,66,50,0.18)',
+              fontSize: '1.8rem',
+              color: 'rgba(253,250,244,0.72)',
               lineHeight: 1,
+              textShadow: '0 2px 10px rgba(26,23,20,0.28)',
             }}
           >
             {String(index + 1).padStart(2, '0')}
           </span>
-          <span
-            style={{
-              fontFamily: "'Noto Sans KR', sans-serif",
-              fontSize: '1.4rem',
-              marginTop: '10px',
-              lineHeight: 1,
-            }}
-          >
-            {scenario.themeIcon}
-          </span>
         </div>
 
         {/* 본문 */}
-        <div className="flex-1 px-5 py-4">
+        <div className="flex-1 px-2 py-5 pr-5 sm:py-6 sm:pr-7">
           {/* 상단 배지 */}
           <div className="flex items-center gap-2 mb-2 flex-wrap">
             <span
@@ -925,7 +959,7 @@ function ScenarioCard({
           {/* CTA */}
           <button
             onClick={onStart}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl transition-all hover:opacity-90 active:scale-[0.98]"
+            className="flex items-center px-4 py-2 rounded-xl transition-all hover:opacity-90 active:scale-[0.98]"
             style={{
               background: 'linear-gradient(135deg, #1E3328 0%, #3D6B52 100%)',
               color: 'white',
@@ -936,7 +970,6 @@ function ScenarioCard({
             }}
           >
             시뮬레이션 시작하기
-            <ChevronRight className="w-4 h-4" />
           </button>
         </div>
       </div>
@@ -1005,8 +1038,6 @@ export function CharacterDetailPage({
   onBack: () => void;
   onStartScenario?: (scenarioIdx: number) => void;
 }) {
-  const fallbackChar = CHARACTERS[charId];
-  const fallbackScenarios = useMemo(() => getScenariosForChar(charId), [charId]);
   const [apiPayload, setApiPayload] = useState<CharacterDetailPayload | null>(
     () => detailCache.get(getApiName(charId)) ?? null,
   );
@@ -1041,8 +1072,8 @@ export function CharacterDetailPage({
     };
   }, [charId]);
 
-  const char = apiPayload?.char ?? fallbackChar;
-  const scenarios = apiPayload?.scenarios.length ? apiPayload.scenarios : fallbackScenarios;
+  const char = apiPayload?.char ?? null;
+  const scenarios = apiPayload?.scenarios ?? [];
 
   if (!char) {
     return (

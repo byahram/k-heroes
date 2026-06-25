@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, ChevronDown, ChevronUp, ChevronRight, Check } from "lucide-react";
 import { BrandLogo } from "@/components/layout/BrandLogo";
@@ -7,15 +7,29 @@ import { authSessionsQueryKeyPrefix } from "@/hooks/use-my-sessions";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
 
-const LEGACY_API_NAMES: Record<string, string> = {
-  'yi-sunsin': '이순신',
-  yi_sunsin: '이순신',
-  yunbongil: '윤봉길',
-  sejong: '세종대왕',
-};
-
 function getApiName(charId: string) {
-  return LEGACY_API_NAMES[charId] ?? charId;
+  return decodeURIComponent(charId);
+}
+
+function preloadImage(src?: string) {
+  if (!src || src === "/logo.svg" || typeof window === "undefined") {
+    return Promise.resolve();
+  }
+
+  return new Promise<void>((resolve) => {
+    const image = new Image();
+    image.onload = () => resolve();
+    image.onerror = () => resolve();
+    image.src = src;
+  });
+}
+
+function preloadTurnAssets(turnData: any, fallbackImage?: string) {
+  return Promise.all([
+    preloadImage(turnData?.turn_image || fallbackImage),
+    preloadImage(turnData?.choice_a?.choice_image || fallbackImage),
+    preloadImage(turnData?.choice_b?.choice_image || fallbackImage),
+  ]);
 }
 
 function getStatIcon(name: string): string {
@@ -58,117 +72,6 @@ interface StepData {
   toggleA: string;
   choices: [ChoiceData, ChoiceData];
 }
-
-/* ────────────────────────────
-   윤봉길 시나리오 데이터
-──────────────────────────── */
-const STEPS: StepData[] = [
-  {
-    step: 1,
-    title: "상하이 망명",
-    year: "1931년",
-    situation: "고향을 떠나 상하이에 온 당신.\n독립운동의 리더 김구 선생을 만났습니다.\n어떤 길을 가겠습니까?",
-    img: "https://images.unsplash.com/photo-1765290350401-90088bd9ef6c?w=800&q=80&fit=crop",
-    toggleQ: "왜 고향을 떠나 상하이에 왔을까요?",
-    toggleA: "윤봉길 의사는 원래 농민들을 가르치며 살았습니다.\n하지만 교육만으로는 나라를 되찾을 수 없다고 생각했습니다.\n그래서 직접 행동하기 위해 상하이 임시정부를 찾아왔습니다.",
-    choices: [
-      {
-        id: "A",
-        tag: "실제 역사",
-        title: "목숨을 걸고\n비밀 대원이 된다",
-        desc: "한인애국단에 합류해 김구 선생의 지휘 아래 독립운동에 헌신한다",
-        img: "https://images.unsplash.com/photo-1710194948588-890d867407df?w=600&q=80&fit=crop",
-        indicators: [
-          { icon: "💰", label: "독립 자금", value: -10 },
-          { icon: "🤝", label: "팀워크", value: 20 },
-          { icon: "🎯", label: "성공 확률", value: 15, isPercent: true },
-        ],
-      },
-      {
-        id: "B",
-        tag: "가상 분기",
-        title: "상하이에서 공장을 차려\n돈을 버는 데 집중한다",
-        desc: "독립운동 자금을 마련하겠다는 명목으로 사업에 집중한다",
-        img: "https://images.unsplash.com/photo-1579618215542-2ed5e10b65ed?w=600&q=80&fit=crop",
-        indicators: [
-          { icon: "💰", label: "독립 자금", value: 30 },
-          { icon: "🤝", label: "팀워크", value: -10 },
-          { icon: "🎯", label: "성공 확률", value: -15, isPercent: true },
-        ],
-      },
-    ],
-  },
-  {
-    step: 2,
-    title: "무기 선택",
-    year: "1932년 4월",
-    situation: "일본군의 큰 파티장을 공격해야 합니다.\n하지만 입구에서는 도시락과 물통만 통과시키고 있습니다.",
-    img: "https://images.unsplash.com/photo-1559695572-912854d44626?w=800&q=80&fit=crop",
-    toggleQ: "왜 하필 도시락과 물통일까요?",
-    toggleA: "일본군은 야외 행사였기 때문에\n도시락과 물통을 허용했습니다.\n윤봉길 의사와 김구 선생은\n이 허점을 이용했습니다.",
-    choices: [
-      {
-        id: "A",
-        tag: "가상 분기",
-        title: "권총과 대형 폭탄을\n옷 속에 숨긴다",
-        desc: "더 강력한 무기를 선택하지만 경비 검문에서 발각될 위험이 크다",
-        img: "https://images.unsplash.com/photo-1650693200206-4e9083332307?w=600&q=80&fit=crop",
-        indicators: [
-          { icon: "💰", label: "독립 자금", value: -5 },
-          { icon: "🤝", label: "팀워크", value: 5 },
-          { icon: "🎯", label: "성공 확률", value: -25, isPercent: true },
-        ],
-      },
-      {
-        id: "B",
-        tag: "실제 역사",
-        title: "물통 폭탄과\n도시락 폭탄을 챙긴다",
-        desc: "도시락과 물통 모양으로 위장한 폭탄을 선택해 경비를 통과한다",
-        img: "https://images.unsplash.com/photo-1607437817193-3b3b029b5b75?w=600&q=80&fit=crop",
-        indicators: [
-          { icon: "💰", label: "독립 자금", value: -10 },
-          { icon: "🤝", label: "팀워크", value: 10 },
-          { icon: "🎯", label: "성공 확률", value: 30, isPercent: true },
-        ],
-      },
-    ],
-  },
-  {
-    step: 3,
-    title: "거사의 순간",
-    year: "1932년 4월 29일",
-    situation: "변장을 하고 행사장에 들어왔습니다.\n언제 폭탄을 던질까요?",
-    img: "https://images.unsplash.com/photo-1633124360553-af420d18cd79?w=800&q=80&fit=crop",
-    toggleQ: "왜 일본 국가가 울릴 때였을까요?",
-    toggleA: "일본 국가가 울리자\n모든 장군과 경비병이 무대를 향해 경례했습니다.\n그 순간이 가장 완벽한 기회였습니다.",
-    choices: [
-      {
-        id: "A",
-        tag: "실제 역사",
-        title: "모두가 경례하는 순간\n폭탄을 던진다",
-        desc: "모든 시선이 무대를 향한 완벽한 순간을 포착해 결행한다",
-        img: "https://images.unsplash.com/photo-1562463921-26a24fda45c2?w=600&q=80&fit=crop",
-        indicators: [
-          { icon: "💰", label: "독립 자금", value: 0 },
-          { icon: "🤝", label: "팀워크", value: 30 },
-          { icon: "🎯", label: "성공 확률", value: 20, isPercent: true },
-        ],
-      },
-      {
-        id: "B",
-        tag: "가상 분기",
-        title: "행사가 끝난 뒤\n장군들이 이동할 때 던진다",
-        desc: "행사가 끝난 후 경비가 느슨해질 때를 노린다",
-        img: "https://images.unsplash.com/photo-1770325323993-27ae9433aa2a?w=600&q=80&fit=crop",
-        indicators: [
-          { icon: "💰", label: "독립 자금", value: 0 },
-          { icon: "🤝", label: "팀워크", value: 10 },
-          { icon: "🎯", label: "성공 확률", value: -10, isPercent: true },
-        ],
-      },
-    ],
-  },
-];
 
 /* ────────────────────────────
    진행도 표시
@@ -224,7 +127,15 @@ function ProgressIndicator({ current, total }: { current: number; total: number 
 /* ────────────────────────────
    시나리오 카드
 ──────────────────────────── */
-function ScenarioCard({ data }: { data: StepData }) {
+function ScenarioCard({
+  data,
+  imageFadeKey,
+  mediaVisible,
+}: {
+  data: StepData;
+  imageFadeKey: number;
+  mediaVisible: boolean;
+}) {
   return (
     <div
       className="rounded-2xl overflow-hidden mb-3"
@@ -238,15 +149,51 @@ function ScenarioCard({ data }: { data: StepData }) {
         @media (min-width: 768px) {
           .kh-scenario-row { min-height: 196px; }
         }
+        .kh-step-image-fade {
+          transition: opacity 0.75s ease;
+          will-change: opacity;
+        }
+        .kh-step-content-fade {
+          transition: opacity 0.75s ease, transform 0.75s ease;
+          will-change: opacity, transform;
+        }
+        .kh-ink-skeleton {
+          position: relative;
+          overflow: hidden;
+          border-radius: 999px;
+          background: linear-gradient(90deg, rgba(42,66,50,0.08), rgba(42,66,50,0.16), rgba(154,142,126,0.1));
+        }
+        .kh-ink-skeleton::after {
+          content: "";
+          position: absolute;
+          inset: 0;
+          transform: translateX(-100%);
+          background: linear-gradient(90deg, transparent, rgba(253,250,244,0.58), transparent);
+          animation: khInkSkeletonFlow 1.25s ease-in-out infinite;
+        }
+        @keyframes khInkSkeletonFlow {
+          to { transform: translateX(100%); }
+        }
       `}</style>
       <div className="kh-scenario-row flex flex-col md:flex-row">
         {/* 모바일: 이미지 상단 */}
-        <div className="md:hidden relative overflow-hidden" style={{ height: "160px" }}>
+        <div
+          className="md:hidden relative overflow-hidden"
+          style={{
+            height: "160px",
+            background:
+              "linear-gradient(135deg, rgba(42,66,50,0.08), rgba(154,142,126,0.12), rgba(42,66,50,0.06))",
+          }}
+        >
           <img
+            key={`mobile-${imageFadeKey}-${data.img}`}
             src={data.img}
             alt={data.title}
-            className="w-full h-full object-cover"
-            style={{ filter: "sepia(0.22) saturate(0.82) brightness(0.9)" }}
+            className="kh-step-image-fade w-full h-full object-cover"
+            style={{
+              filter: "sepia(0.22) saturate(0.82) brightness(0.9)",
+              opacity: mediaVisible ? 1 : 0,
+            }}
           />
           <div
             className="absolute inset-0"
@@ -257,74 +204,99 @@ function ScenarioCard({ data }: { data: StepData }) {
         </div>
 
         {/* 텍스트 */}
-        <div className="kh-scenario-text flex-1 px-6 py-5 md:py-6 md:pl-7 md:pr-5">
-          <span
+        <div className="kh-scenario-text relative flex-1 px-6 py-5 md:py-6 md:pl-7 md:pr-5">
+          {!mediaVisible && (
+            <div className="absolute inset-0 px-6 py-5 md:py-6 md:pl-7 md:pr-5">
+              <div className="kh-ink-skeleton mb-4 h-5 w-16" />
+              <div className="kh-ink-skeleton mb-3 h-8 w-[58%]" />
+              <div className="kh-ink-skeleton mb-2 h-3.5 w-[92%]" />
+              <div className="kh-ink-skeleton mb-2 h-3.5 w-[82%]" />
+              <div className="kh-ink-skeleton h-3.5 w-[68%]" />
+            </div>
+          )}
+          <div
+            className="kh-step-content-fade"
             style={{
-              fontFamily: "'Noto Sans KR', sans-serif",
-              fontSize: "0.62rem",
-              color: "#2A4232",
-              background: "rgba(42,66,50,0.1)",
-              borderRadius: "4px",
-              padding: "2px 8px",
-              fontWeight: 700,
-              letterSpacing: "0.06em",
-              display: "inline-block",
-              marginBottom: "10px",
+              opacity: mediaVisible ? 1 : 0,
+              transform: mediaVisible ? "translateY(0)" : "translateY(4px)",
             }}
           >
-            STEP {data.step}
-          </span>
-          <div className="mb-3">
-            <h2
-              style={{
-                fontFamily: "'Noto Serif KR', serif",
-                fontWeight: 700,
-                fontSize: "clamp(1.3rem, 2.5vw, 1.9rem)",
-                color: "#1A1714",
-                lineHeight: 1.2,
-                display: "inline",
-              }}
-            >
-              {data.title}
-            </h2>
             <span
               style={{
                 fontFamily: "'Noto Sans KR', sans-serif",
-                fontSize: "0.8rem",
-                color: "#9A8E7E",
-                marginLeft: "8px",
+                fontSize: "0.62rem",
+                color: "#2A4232",
+                background: "rgba(42,66,50,0.1)",
+                borderRadius: "4px",
+                padding: "2px 8px",
+                fontWeight: 700,
+                letterSpacing: "0.06em",
+                display: "inline-block",
+                marginBottom: "10px",
               }}
             >
-              ({data.year})
+              STEP {data.step}
             </span>
-          </div>
-          <div>
-            {data.situation.split("\n").map((line, i) => (
-              <p
-                key={i}
+            <div className="mb-3">
+              <h2
                 style={{
-                  fontFamily: "'Noto Sans KR', sans-serif",
-                  fontSize: "0.86rem",
-                  color: "#4A4035",
-                  lineHeight: 1.8,
+                  fontFamily: "'Noto Serif KR', serif",
+                  fontWeight: 700,
+                  fontSize: "clamp(1.3rem, 2.5vw, 1.9rem)",
+                  color: "#1A1714",
+                  lineHeight: 1.2,
+                  display: "inline",
                 }}
               >
-                {line}
-              </p>
-            ))}
+                {data.title}
+              </h2>
+              <span
+                style={{
+                  fontFamily: "'Noto Sans KR', sans-serif",
+                  fontSize: "0.8rem",
+                  color: "#9A8E7E",
+                  marginLeft: "8px",
+                }}
+              >
+                ({data.year})
+              </span>
+            </div>
+            <div>
+              {data.situation.split("\n").map((line, i) => (
+                <p
+                  key={i}
+                  style={{
+                    fontFamily: "'Noto Sans KR', sans-serif",
+                    fontSize: "0.86rem",
+                    color: "#4A4035",
+                    lineHeight: 1.8,
+                  }}
+                >
+                  {line}
+                </p>
+              ))}
+            </div>
           </div>
         </div>
 
         {/* 데스크탑: 이미지 우측 */}
         <div
           className="hidden md:block flex-shrink-0 relative overflow-hidden self-stretch"
-          style={{ width: "42%" }}
+          style={{
+            width: "42%",
+            background:
+              "linear-gradient(135deg, rgba(42,66,50,0.08), rgba(154,142,126,0.12), rgba(42,66,50,0.06))",
+          }}
         >
           <img
+            key={`desktop-${imageFadeKey}-${data.img}`}
             src={data.img}
             alt={data.title}
-            className="absolute inset-0 w-full h-full object-cover"
-            style={{ filter: "sepia(0.22) saturate(0.82) brightness(0.9)" }}
+            className="kh-step-image-fade absolute inset-0 w-full h-full object-cover"
+            style={{
+              filter: "sepia(0.22) saturate(0.82) brightness(0.9)",
+              opacity: mediaVisible ? 1 : 0,
+            }}
           />
           <div
             className="absolute inset-0"
@@ -346,11 +318,13 @@ function HistoryToggle({
   question,
   answer,
   open,
+  contentVisible,
   onToggle,
 }: {
   question: string;
   answer: string;
   open: boolean;
+  contentVisible: boolean;
   onToggle: () => void;
 }) {
   return (
@@ -363,17 +337,31 @@ function HistoryToggle({
       }}
     >
       <button
-        className="w-full flex items-center gap-3 px-5 py-3.5 text-left"
+        className="relative w-full flex items-center gap-3 px-5 py-3.5 text-left"
         onClick={onToggle}
       >
-        <span style={{ fontSize: "15px", flexShrink: 0 }}>💡</span>
+        {!contentVisible && (
+          <div className="absolute inset-0 flex items-center gap-3 px-5">
+            <div className="kh-ink-skeleton h-5 w-5 rounded-full" />
+            <div className="kh-ink-skeleton h-4 w-[62%]" />
+          </div>
+        )}
         <span
+          className="kh-step-content-fade"
+          style={{ fontSize: "15px", flexShrink: 0, opacity: contentVisible ? 1 : 0 }}
+        >
+          💡
+        </span>
+        <span
+          className="kh-step-content-fade"
           style={{
             fontFamily: "'Noto Serif KR', serif",
             fontWeight: 600,
             fontSize: "0.88rem",
             color: "#2A2420",
             flex: 1,
+            opacity: contentVisible ? 1 : 0,
+            transform: contentVisible ? "translateY(0)" : "translateY(3px)",
           }}
         >
           {question}
@@ -449,15 +437,156 @@ function IndicatorRow({ indicator }: { indicator: Indicator }) {
   );
 }
 
+function StepTransitionSkeleton({
+  title = "다음 이야기를 불러오는 중",
+  description = "이미지와 선택지를 정리하고 있습니다.",
+  ending = false,
+}: {
+  title?: string;
+  description?: string;
+  ending?: boolean;
+}) {
+  return (
+    <div
+      className={
+        ending
+          ? "pointer-events-auto fixed inset-0 z-[80] overflow-hidden"
+          : "pointer-events-none absolute inset-0 z-30 overflow-hidden rounded-[18px]"
+      }
+      style={{
+        background: "transparent",
+        touchAction: ending ? "none" : undefined,
+      }}
+    >
+      <style>{`
+        @keyframes khStepMist {
+          0% { transform: translateX(-72%) skewX(-7deg); opacity: 0; }
+          22% { opacity: 0.72; }
+          100% { transform: translateX(78%) skewX(-7deg); opacity: 0; }
+        }
+        @keyframes khStepPulse {
+          0%, 100% { opacity: 0.34; }
+          50% { opacity: 0.62; }
+        }
+        @keyframes khBrushWrite {
+          from { clip-path: inset(0 100% 0 0); opacity: 0.72; }
+          to { clip-path: inset(0 0 0 0); opacity: 1; }
+        }
+        @keyframes khInkSettle {
+          from { opacity: 0; transform: translateY(8px); filter: blur(2px); }
+          to { opacity: 1; transform: translateY(0); filter: blur(0); }
+        }
+        @keyframes khBrushStroke {
+          from { transform: scaleX(0); opacity: 0; }
+          32% { opacity: 0.8; }
+          to { transform: scaleX(1); opacity: 0.52; }
+        }
+        .kh-step-skeleton-line,
+        .kh-step-skeleton-block {
+          animation: khStepPulse 1.15s ease-in-out infinite;
+        }
+        .kh-ending-brush {
+          animation: khBrushWrite 1.15s cubic-bezier(0.24, 0.76, 0.32, 1) both;
+        }
+        .kh-transition-copy {
+          animation: khInkSettle 0.58s ease both;
+        }
+      `}</style>
+      <div
+        className="absolute inset-y-0 w-[56%]"
+        style={{
+          animation: "khStepMist 1.05s ease-in-out infinite",
+          background:
+            "linear-gradient(100deg, rgba(253,250,244,0) 0%, rgba(253,250,244,0.86) 42%, rgba(224,211,184,0.42) 58%, rgba(253,250,244,0) 100%)",
+        }}
+      />
+      {ending && (
+      <div className="absolute inset-0 flex items-center justify-center px-6 text-center">
+        <div
+          className="max-w-[560px] rounded-[18px] px-7 py-6"
+          style={{
+            background: "rgba(253,250,244,0.78)",
+            border: "1px solid rgba(42,66,50,0.08)",
+            boxShadow: "0 16px 44px rgba(42,66,50,0.08)",
+            backdropFilter: "blur(3px)",
+            WebkitBackdropFilter: "blur(3px)",
+          }}
+        >
+          {ending && (
+            <div
+              aria-hidden
+              className="mx-auto mb-5 h-2 w-44 origin-left rounded-full"
+              style={{
+                animation: "khBrushStroke 1.1s cubic-bezier(0.2, 0.78, 0.24, 1) both",
+                background:
+                  "linear-gradient(90deg, transparent 0%, rgba(42,66,50,0.45) 14%, rgba(42,66,50,0.7) 52%, rgba(154,106,31,0.34) 82%, transparent 100%)",
+                filter: "blur(0.2px)",
+              }}
+            />
+          )}
+          <h2
+            className={ending ? "kh-ending-brush" : "kh-transition-copy"}
+            style={{
+              fontFamily: "'Noto Serif KR', serif",
+              fontWeight: 900,
+              color: "#1A1714",
+              fontSize: ending ? "clamp(1.55rem, 4.8vw, 2.85rem)" : "clamp(1.4rem, 4vw, 2.35rem)",
+              lineHeight: 1.32,
+              whiteSpace: "pre-line",
+              textShadow: "0 1px 0 rgba(253,250,244,0.4)",
+            }}
+          >
+            {title}
+          </h2>
+          <p
+            className="kh-transition-copy mt-4"
+            style={{
+              animationDelay: ending ? "0.72s" : "0.08s",
+              fontFamily: "'Noto Sans KR', sans-serif",
+              color: "#5F574D",
+              fontSize: ending ? "0.92rem" : "0.88rem",
+              fontWeight: 700,
+              lineHeight: 1.7,
+            }}
+          >
+            {description}
+          </p>
+        </div>
+      </div>
+      )}
+    </div>
+  );
+}
+
+function InitialSimulationSkeleton() {
+  return (
+    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#FDFAF4]" style={storyPageBackground}>
+      <div className="mb-4 h-8 w-8 animate-spin rounded-full border-4 border-[#2A4232] border-t-transparent" />
+      <p
+        style={{
+          fontFamily: "'Noto Sans KR', sans-serif",
+          color: "#7A7060",
+          fontSize: "0.9rem",
+        }}
+      >
+        역사 시뮬레이션을 불러오는 중...
+      </p>
+    </div>
+  );
+}
 /* ────────────────────────────
    선택 카드
 ──────────────────────────── */
 function ChoiceCard({
   choice,
+  imageFadeKey,
+  mediaVisible,
   selected,
   onSelect,
 }: {
   choice: ChoiceData;
+  imageFadeKey: number;
+  mediaVisible: boolean;
   selected: boolean;
   onSelect: () => void;
 }) {
@@ -479,12 +608,23 @@ function ChoiceCard({
       onClick={onSelect}
     >
       {/* 이미지 + 배지 */}
-      <div className="relative overflow-hidden" style={{ height: "200px" }}>
+      <div
+        className="relative overflow-hidden"
+        style={{
+          height: "200px",
+          background:
+            "linear-gradient(135deg, rgba(42,66,50,0.09), rgba(154,142,126,0.13), rgba(42,66,50,0.06))",
+        }}
+      >
         <img
+          key={`${imageFadeKey}-${choice.id}-${choice.img}`}
           src={choice.img}
           alt=""
-          className="w-full h-full object-cover"
-          style={{ filter: "sepia(0.28) saturate(0.78) brightness(0.88)" }}
+          className="kh-step-image-fade w-full h-full object-cover"
+          style={{
+            filter: "sepia(0.28) saturate(0.78) brightness(0.88)",
+            opacity: mediaVisible ? 1 : 0,
+          }}
         />
         <div
           className="absolute inset-0"
@@ -499,7 +639,10 @@ function ChoiceCard({
         />
 
         {/* 배지 */}
-        <div className="absolute top-3 left-3 flex items-center gap-2">
+        <div
+          className="absolute top-3 left-3 flex items-center gap-2 kh-step-content-fade"
+          style={{ opacity: mediaVisible ? 1 : 0 }}
+        >
           <div
             className="flex items-center justify-center rounded-full flex-shrink-0"
             style={{
@@ -530,57 +673,59 @@ function ChoiceCard({
               </span>
             )}
           </div>
-          <span
-            style={{
-              fontFamily: "'Noto Sans KR', sans-serif",
-              fontSize: "0.6rem",
-              color: "white",
-              background: isA
-                ? "rgba(42,66,50,0.78)"
-                : "rgba(140,90,20,0.78)",
-              borderRadius: "4px",
-              padding: "2px 7px",
-              fontWeight: 700,
-              backdropFilter: "blur(4px)",
-            }}
-          >
-            {choice.tag}
-          </span>
         </div>
       </div>
 
       {/* 텍스트 */}
-      <div className="p-4 pt-3.5">
-        <h3
+      <div className="relative p-4 pt-3.5">
+        {!mediaVisible && (
+          <div className="absolute inset-0 p-4 pt-3.5">
+            <div className="kh-ink-skeleton mb-3 h-5 w-[74%]" />
+            <div className="kh-ink-skeleton mb-2 h-3.5 w-[92%]" />
+            <div className="kh-ink-skeleton mb-5 h-3.5 w-[70%]" />
+            <div className="kh-ink-skeleton mb-2 h-3 w-[82%]" />
+            <div className="kh-ink-skeleton mb-2 h-3 w-[76%]" />
+            <div className="kh-ink-skeleton h-3 w-[64%]" />
+          </div>
+        )}
+        <div
+          className="kh-step-content-fade"
           style={{
-            fontFamily: "'Noto Serif KR', serif",
-            fontWeight: 700,
-            fontSize: "0.95rem",
-            color: "#1A1714",
-            lineHeight: 1.45,
-            marginBottom: "6px",
-            whiteSpace: "pre-line",
+            opacity: mediaVisible ? 1 : 0,
+            transform: mediaVisible ? "translateY(0)" : "translateY(4px)",
           }}
         >
-          {choice.title}
-        </h3>
-        <p
-          style={{
-            fontFamily: "'Noto Sans KR', sans-serif",
-            fontSize: "0.75rem",
-            color: "#6A6055",
-            lineHeight: 1.65,
-            marginBottom: "12px",
-          }}
-        >
-          {choice.desc}
-        </p>
+          <h3
+            style={{
+              fontFamily: "'Noto Serif KR', serif",
+              fontWeight: 700,
+              fontSize: "0.95rem",
+              color: "#1A1714",
+              lineHeight: 1.45,
+              marginBottom: "6px",
+              whiteSpace: "pre-line",
+            }}
+          >
+            {choice.title}
+          </h3>
+          <p
+            style={{
+              fontFamily: "'Noto Sans KR', sans-serif",
+              fontSize: "0.75rem",
+              color: "#6A6055",
+              lineHeight: 1.65,
+              marginBottom: "12px",
+            }}
+          >
+            {choice.desc}
+          </p>
 
-        {/* 지표 */}
-        <div>
-          {choice.indicators.map((ind) => (
-            <IndicatorRow key={ind.label} indicator={ind} />
-          ))}
+          {/* 지표 */}
+          <div>
+            {choice.indicators.map((ind) => (
+              <IndicatorRow key={ind.label} indicator={ind} />
+            ))}
+          </div>
         </div>
       </div>
     </div>
@@ -602,6 +747,7 @@ export function SimulationPage({
   onComplete: (uuid: string) => void;
 }) {
   const queryClient = useQueryClient();
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const [resolvedCharName, setResolvedCharName] = useState<string | null>(null);
   const [scenarioId, setScenarioId] = useState<number | null>(null);
   const [characterCard, setCharacterCard] = useState<any | null>(null);
@@ -610,13 +756,29 @@ export function SimulationPage({
   const [choicesPath, setChoicesPath] = useState<string[]>([]);
   const [selectedChoice, setSelectedChoice] = useState<"A" | "B" | null>(null);
   const [toggleOpen, setToggleOpen] = useState(false);
+  const [imageFadeKey, setImageFadeKey] = useState(0);
+  const [mediaVisible, setMediaVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isGeneratingEnding, setIsGeneratingEnding] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const scrollSimulationToTop = () => {
+    scrollContainerRef.current?.scrollTo({ top: 0, behavior: "auto" });
+  };
+
+  const revealStepMedia = () => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        setMediaVisible(true);
+      });
+    });
+  };
 
   // Initialize Simulation
   useEffect(() => {
     let active = true;
     setIsLoading(true);
+    setMediaVisible(false);
     setError(null);
 
     const init = async () => {
@@ -676,9 +838,12 @@ export function SimulationPage({
         });
         if (!turnRes.ok) throw new Error("첫 단계 조회 실패");
         const turnData = await turnRes.json();
+        await preloadTurnAssets(turnData, detail.image_url);
         
         if (!active) return;
         setCurrentTurn(turnData);
+        setImageFadeKey((key) => key + 1);
+        revealStepMedia();
       } catch (e: any) {
         if (!active) return;
         console.error(e);
@@ -697,12 +862,17 @@ export function SimulationPage({
   const handleNext = async () => {
     if (!selectedChoice || !currentTurn || !resolvedCharName || !scenarioId || !gameState) return;
     setIsLoading(true);
+    setMediaVisible(false);
+    scrollSimulationToTop();
 
     const nextPath = [...choicesPath, selectedChoice];
     const isLast = currentTurn.current_step === currentTurn.total_steps;
 
     try {
       if (isLast) {
+        setIsGeneratingEnding(true);
+        const minimumLoading = new Promise((resolve) => window.setTimeout(resolve, 2400));
+
         // Generate Ending
         const endRes = await fetch(`${API_BASE_URL}/api/v2/simulation/ending`, {
           method: "POST",
@@ -718,8 +888,11 @@ export function SimulationPage({
         if (!endRes.ok) throw new Error("엔딩 생성 실패");
         const endingData = await endRes.json();
         await queryClient.invalidateQueries({ queryKey: authSessionsQueryKeyPrefix });
+        await minimumLoading;
         onComplete(endingData.uuid);
       } else {
+        const minimumLoading = new Promise((resolve) => window.setTimeout(resolve, 1000));
+
         // Load next turn
         const turnRes = await fetch(`${API_BASE_URL}/api/v2/simulation/turn`, {
           method: "POST",
@@ -735,17 +908,24 @@ export function SimulationPage({
         });
         if (!turnRes.ok) throw new Error("다음 단계 조회 실패");
         const turnData = await turnRes.json();
+        await preloadTurnAssets(turnData, characterCard.image_url);
+        await minimumLoading;
         
         setChoicesPath(nextPath);
         setCurrentTurn(turnData);
+        setImageFadeKey((key) => key + 1);
         setSelectedChoice(null);
         setToggleOpen(false);
+        requestAnimationFrame(scrollSimulationToTop);
+        revealStepMedia();
       }
     } catch (e: any) {
       console.error(e);
+      setMediaVisible(true);
       alert(e.message || "오류가 발생했습니다.");
     } finally {
       setIsLoading(false);
+      setIsGeneratingEnding(false);
     }
   };
 
@@ -757,7 +937,8 @@ export function SimulationPage({
       return;
     }
 
-    setIsLoading(true);
+    setMediaVisible(false);
+    scrollSimulationToTop();
     const prevPath = choicesPath.slice(0, -1);
 
     try {
@@ -775,13 +956,18 @@ export function SimulationPage({
       });
       if (!turnRes.ok) throw new Error("이전 단계 조회 실패");
       const turnData = await turnRes.json();
+      await preloadTurnAssets(turnData, characterCard.image_url);
       
       setChoicesPath(prevPath);
       setCurrentTurn(turnData);
+      setImageFadeKey((key) => key + 1);
       setSelectedChoice(null);
       setToggleOpen(false);
+      requestAnimationFrame(scrollSimulationToTop);
+      revealStepMedia();
     } catch (e: any) {
       console.error(e);
+      setMediaVisible(true);
       alert(e.message || "오류가 발생했습니다.");
     } finally {
       setIsLoading(false);
@@ -789,14 +975,7 @@ export function SimulationPage({
   };
 
   if (isLoading && !currentTurn) {
-    return (
-      <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#FDFAF4]" style={storyPageBackground}>
-        <div className="w-8 h-8 border-4 border-[#2A4232] border-t-transparent rounded-full animate-spin mb-4" />
-        <p style={{ fontFamily: "'Noto Sans KR', sans-serif", color: "#7A7060", fontSize: "0.9rem" }}>
-          역사 시뮬레이션을 불러오는 중...
-        </p>
-      </div>
-    );
+    return <InitialSimulationSkeleton />;
   }
 
   if (error) {
@@ -866,16 +1045,10 @@ export function SimulationPage({
 
   return (
     <div
-      className="fixed inset-0 z-50 overflow-y-auto"
+      ref={scrollContainerRef}
+      className={`fixed inset-0 z-50 ${isGeneratingEnding ? "overflow-hidden" : "overflow-y-auto"}`}
       style={storyPageBackground}
     >
-      {/* 로딩 오버레이 */}
-      {isLoading && (
-        <div className="absolute inset-0 bg-white/40 backdrop-blur-[1px] z-50 flex items-center justify-center">
-          <div className="w-8 h-8 border-4 border-[#2A4232] border-t-transparent rounded-full animate-spin" />
-        </div>
-      )}
-
       {/* ── 헤더 ── */}
       <header
         className="sticky top-0 z-10 h-14 border-b"
@@ -886,7 +1059,7 @@ export function SimulationPage({
           borderColor: "rgba(42,66,50,0.08)",
         }}
       >
-        <div className="mx-auto flex h-full max-w-[860px] items-center justify-between px-4 sm:px-6">
+        <div className="relative mx-auto flex h-full max-w-[860px] items-center justify-between px-4 sm:px-6">
           <button
             onClick={handleBack}
             className="flex items-center gap-1.5 hover:opacity-60 transition-opacity"
@@ -896,34 +1069,71 @@ export function SimulationPage({
             <span className="hidden sm:inline">돌아가기</span>
           </button>
 
-          <ProgressIndicator current={currentTurn.current_step} total={currentTurn.total_steps} />
+          <span
+            className="absolute left-1/2 max-w-[46vw] -translate-x-1/2 truncate text-center"
+            style={{
+              fontFamily: "'Noto Serif KR', serif",
+              fontWeight: 700,
+              fontSize: "0.92rem",
+              color: "#2A4232",
+              lineHeight: 1.2,
+            }}
+          >
+            {resolvedCharName || characterCard.name || "시뮬레이션"}
+          </span>
 
           <BrandLogo compact />
         </div>
       </header>
 
       {/* ── 본문 ── */}
-      <div className="max-w-[860px] mx-auto px-4 sm:px-6 pt-5 pb-28">
+      <div className="relative max-w-[860px] mx-auto px-4 sm:px-6 pt-5 pb-28">
+        <div
+          className="mb-4 flex justify-center px-4 py-1"
+          style={{
+            opacity: isLoading ? 0.42 : 1,
+            transition: "opacity 0.22s ease",
+          }}
+        >
+          <ProgressIndicator current={currentTurn.current_step} total={currentTurn.total_steps} />
+        </div>
+
+        {isLoading && (
+          <StepTransitionSkeleton
+            ending={isGeneratingEnding}
+            title={isGeneratingEnding ? "당신의 선택이\n새로운 역사가 됩니다" : "다음 이야기를 준비하고 있습니다"}
+            description={
+              isGeneratingEnding
+                ? "한 편의 역사책을 완성하는 중..."
+                : "당신의 선택을 반영하여 다음 역사를 이어갑니다."
+            }
+          />
+        )}
+
         {/* 시나리오 카드 */}
-        <ScenarioCard data={stepData} />
+        <ScenarioCard data={stepData} imageFadeKey={imageFadeKey} mediaVisible={mediaVisible} />
 
         {/* 역사 토글 */}
         <HistoryToggle
           question={stepData.toggleQ}
           answer={stepData.toggleA}
           open={toggleOpen}
+          contentVisible={mediaVisible}
           onToggle={() => setToggleOpen((v) => !v)}
         />
 
         {/* 선택 영역 */}
         <div>
           <h2
+            className="kh-step-content-fade"
             style={{
               fontFamily: "'Noto Serif KR', serif",
               fontWeight: 700,
               fontSize: "1.05rem",
               color: "#1A1714",
               marginBottom: "14px",
+              opacity: mediaVisible ? 1 : 0,
+              transform: mediaVisible ? "translateY(0)" : "translateY(4px)",
             }}
           >
             당신의 선택
@@ -933,8 +1143,12 @@ export function SimulationPage({
               <ChoiceCard
                 key={choice.id}
                 choice={choice}
+                imageFadeKey={imageFadeKey}
+                mediaVisible={mediaVisible}
                 selected={selectedChoice === choice.id}
-                onSelect={() => setSelectedChoice(choice.id)}
+                onSelect={() => {
+                  if (!isLoading) setSelectedChoice(choice.id);
+                }}
               />
             ))}
           </div>
@@ -950,25 +1164,25 @@ export function SimulationPage({
           right: 0,
           zIndex: 20,
           padding: "16px 16px 24px",
-          pointerEvents: selectedChoice ? "auto" : "none",
+          pointerEvents: selectedChoice && !isLoading ? "auto" : "none",
         }}
       >
         <div style={{ maxWidth: "860px", margin: "0 auto" }}>
           <button
             onClick={handleNext}
-            disabled={!selectedChoice}
+            disabled={!selectedChoice || isLoading}
             className="w-full flex items-center justify-center gap-2 py-4 rounded-xl transition-all"
             style={{
-              background: selectedChoice
+              background: selectedChoice && !isLoading
                 ? "linear-gradient(135deg, #1E3328 0%, #3D6B52 100%)"
                 : "rgba(42,66,50,0.12)",
-              color: selectedChoice ? "white" : "#A89E8C",
+              color: selectedChoice && !isLoading ? "white" : "#A89E8C",
               fontFamily: "'Noto Sans KR', sans-serif",
               fontWeight: 700,
               fontSize: "1rem",
               letterSpacing: "0.02em",
-              cursor: selectedChoice ? "pointer" : "not-allowed",
-              boxShadow: selectedChoice
+              cursor: selectedChoice && !isLoading ? "pointer" : "not-allowed",
+              boxShadow: selectedChoice && !isLoading
                 ? "0 4px 20px rgba(30,51,40,0.3)"
                 : "none",
               pointerEvents: "auto",

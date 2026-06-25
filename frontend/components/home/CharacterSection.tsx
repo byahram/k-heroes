@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ChevronRight, RefreshCw, Sparkles } from "lucide-react";
-import { CHARACTER_LIST, type CharacterData } from "@/lib/data/characters";
+import Link from "next/link";
+import { ChevronRight, Sparkles } from "lucide-react";
 import { useRevealOnView } from "@/hooks/useRevealOnView";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
@@ -57,21 +57,6 @@ function mapApiCharacter(char: ApiCharacter): LandingCharacter {
     category: char.category ?? "역사 인물",
     imageUrl: char.image_url || "/logo.svg",
     tags: char.keywords?.slice(0, 4).map((tag) => (tag.startsWith("#") ? tag : `#${tag}`)) ?? [],
-  };
-}
-
-function mapStaticCharacter(char: CharacterData): LandingCharacter {
-  return {
-    id: char.id,
-    name: char.name,
-    role: char.role,
-    era: char.era,
-    years: char.years,
-    summary: char.tagline,
-    mbti: char.mbti,
-    category: char.mbtiSubtitle,
-    imageUrl: char.img,
-    tags: char.tags.slice(0, 4),
   };
 }
 
@@ -265,16 +250,67 @@ function CharacterCard({
   );
 }
 
+function CharacterCardSkeleton({ index }: { index: number }) {
+  return (
+    <article
+      data-reveal
+      className="kh-character-card relative min-h-[560px] overflow-hidden rounded-2xl"
+      style={{
+        animationDelay: `${index * 95}ms`,
+        background: "#FDFAF4",
+        border: "1px solid rgba(42,66,50,0.12)",
+        boxShadow: "0 18px 42px rgba(42,66,50,0.08)",
+      }}
+    >
+      <div
+        className="absolute inset-y-0 right-[-14%] w-[88%]"
+        style={{
+          background:
+            "radial-gradient(circle at 54% 40%, rgba(42,66,50,0.07), transparent 62%)",
+        }}
+      />
+      <div className="relative flex min-h-[560px] flex-col justify-between p-5">
+        <div>
+          <div className="mb-6 flex gap-2">
+            <div className="kh-character-skeleton h-7 w-24 rounded-full" />
+            <div className="kh-character-skeleton h-7 w-16 rounded-full" />
+          </div>
+          <div className="kh-character-skeleton mb-4 h-4 w-32 rounded-full" />
+          <div className="kh-character-skeleton mb-3 h-9 w-44 rounded-xl" />
+          <div className="kh-character-skeleton mb-7 h-4 w-24 rounded-full" />
+          <div className="space-y-2.5">
+            <div className="kh-character-skeleton h-4 w-[72%] rounded-full" />
+            <div className="kh-character-skeleton h-4 w-[62%] rounded-full" />
+            <div className="kh-character-skeleton h-4 w-[48%] rounded-full" />
+          </div>
+        </div>
+        <div>
+          <div className="kh-character-skeleton mb-3 h-px w-full" />
+          <div className="kh-character-skeleton h-12 w-full rounded-xl" />
+        </div>
+      </div>
+      <div
+        aria-hidden
+        className="kh-character-skeleton-wash absolute inset-y-0 w-[56%]"
+        style={{
+          background:
+            "linear-gradient(100deg, rgba(253,250,244,0) 0%, rgba(253,250,244,0.8) 46%, rgba(230,218,190,0.42) 58%, rgba(253,250,244,0) 100%)",
+        }}
+      />
+    </article>
+  );
+}
+
 export function CharacterSection({
   onDetail,
 }: {
   onDetail: (id: string) => void;
 }) {
   const { ref, isVisible } = useRevealOnView<HTMLElement>();
-  const fallbackCharacters = useMemo(() => CHARACTER_LIST.map(mapStaticCharacter), []);
-  const [characters, setCharacters] = useState<LandingCharacter[]>(fallbackCharacters);
+  const [characters, setCharacters] = useState<LandingCharacter[]>([]);
+  const [characterError, setCharacterError] = useState<string | null>(null);
+  const [isCharactersLoading, setIsCharactersLoading] = useState(true);
   const [seed, setSeed] = useState(1);
-  const [isRefreshing, setIsRefreshing] = useState(false);
 
   useEffect(() => {
     setSeed(Date.now());
@@ -282,6 +318,7 @@ export function CharacterSection({
 
   useEffect(() => {
     let isActive = true;
+    setIsCharactersLoading(true);
 
     fetch(`${API_BASE_URL}/api/v2/characters`)
       .then(async (response) => {
@@ -289,30 +326,26 @@ export function CharacterSection({
         return (await response.json()) as ApiCharacter[];
       })
       .then((data) => {
-        if (!isActive || !data.length) return;
+        if (!isActive) return;
         setCharacters(data.map(mapApiCharacter));
+        setCharacterError(null);
       })
       .catch(() => {
         if (!isActive) return;
-        setCharacters(fallbackCharacters);
+        setCharacters([]);
+        setCharacterError("인물 API를 불러오지 못했습니다.");
+      })
+      .finally(() => {
+        if (!isActive) return;
+        setIsCharactersLoading(false);
       });
 
     return () => {
       isActive = false;
     };
-  }, [fallbackCharacters]);
+  }, []);
 
   const featured = useMemo(() => pickThree(characters, seed), [characters, seed]);
-
-  const handleRefresh = () => {
-    if (isRefreshing) return;
-
-    setIsRefreshing(true);
-    window.setTimeout(() => {
-      setSeed(Date.now());
-      window.setTimeout(() => setIsRefreshing(false), 40);
-    }, 520);
-  };
 
   return (
     <section
@@ -349,8 +382,14 @@ export function CharacterSection({
           42% { opacity: 0.78; }
           to { opacity: 0.35; transform: translateX(54%) skewX(-5deg); }
         }
-        @keyframes khButtonSpin {
-          to { transform: rotate(360deg); }
+        @keyframes khCharacterSkeletonPulse {
+          0%, 100% { opacity: 0.36; }
+          50% { opacity: 0.68; }
+        }
+        @keyframes khCharacterSkeletonWash {
+          0% { opacity: 0; transform: translateX(-88%) skewX(-7deg); }
+          22% { opacity: 0.78; }
+          100% { opacity: 0; transform: translateX(142%) skewX(-7deg); }
         }
         .kh-character-section [data-reveal],
         .kh-character-card {
@@ -378,6 +417,13 @@ export function CharacterSection({
         .kh-character-card-leaving .kh-featured-portrait {
           opacity: 0.68 !important;
           filter: blur(1.4px) saturate(0.96) contrast(0.98) !important;
+        }
+        .kh-character-skeleton {
+          background: rgba(42,66,50,0.08);
+          animation: khCharacterSkeletonPulse 1.2s ease-in-out infinite;
+        }
+        .kh-character-skeleton-wash {
+          animation: khCharacterSkeletonWash 1.2s ease-in-out infinite;
         }
       `}</style>
       <div className="relative max-w-7xl mx-auto px-6">
@@ -423,40 +469,52 @@ export function CharacterSection({
               인물을 고르면 바로 상세 체험으로 이어집니다.
             </p>
           </div>
-          <button
-            type="button"
-            onClick={handleRefresh}
-            disabled={isRefreshing}
-            className="inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 transition-all hover:-translate-y-0.5 disabled:pointer-events-none disabled:opacity-75"
+          <Link
+            href="/map"
+            className="inline-flex items-center justify-center gap-1.5 transition-all hover:translate-x-1 hover:opacity-80"
             style={{
-              background: "rgba(253,250,244,0.72)",
-              border: "1px solid rgba(42,66,50,0.14)",
               color: "#2A4232",
               fontFamily: "'Noto Sans KR', sans-serif",
-              fontWeight: 800,
-              fontSize: "0.82rem",
+              fontWeight: 900,
+              fontSize: "0.9rem",
             }}
           >
-            <RefreshCw
-              className="h-4 w-4"
-              style={{
-                animation: isRefreshing ? "khButtonSpin 0.9s linear infinite" : undefined,
-              }}
-            />
-            다른 인물 보기
-          </button>
+            더 많은 인물 만나보기
+            <ChevronRight className="h-4 w-4" />
+          </Link>
         </div>
 
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
-          {featured.map((char, index) => (
-            <CharacterCard
-              key={`${char.id}-${seed}`}
-              char={char}
-              index={index}
-              isLeaving={isRefreshing}
-              onDetail={onDetail}
-            />
-          ))}
+          {isCharactersLoading ? (
+            [0, 1, 2].map((index) => <CharacterCardSkeleton key={index} index={index} />)
+          ) : featured.length > 0 ? (
+            featured.map((char, index) => (
+              <CharacterCard
+                key={`${char.id}-${seed}`}
+                char={char}
+                index={index}
+                onDetail={onDetail}
+              />
+            ))
+          ) : (
+            <div
+              data-reveal
+              className="col-span-full rounded-2xl px-6 py-12 text-center"
+              style={{
+                background: "rgba(253,250,244,0.72)",
+                border: "1px solid rgba(42,66,50,0.12)",
+                color: "#6F665A",
+                fontFamily: "'Noto Sans KR', sans-serif",
+              }}
+            >
+              <p style={{ fontWeight: 800, color: "#2A4232" }}>
+                표시할 인물 데이터가 없습니다.
+              </p>
+              <p className="mt-2 text-sm">
+                {characterError ?? "백엔드 API에서 인물 목록을 받아오면 이 영역에 표시됩니다."}
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </section>

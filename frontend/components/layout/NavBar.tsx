@@ -16,10 +16,10 @@ import {
 } from "@/components/ui/dialog";
 
 const NAV_LINKS = [
+  { label: "인트로", target: "top" },
   { label: "서비스 소개", target: "service" },
   { label: "대표 인물", target: "characters" },
   { label: "활용 데이터", target: "data" },
-  { label: "공지사항", target: "footer" },
 ];
 
 export function NavBar({ onStart }: { onStart?: () => void }) {
