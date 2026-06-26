@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
 import { ChevronRight, Music2, Pause, Play, SkipForward, Volume2 } from "lucide-react";
 
 const TRACKS = [
@@ -17,25 +18,29 @@ const TRACKS = [
 ];
 
 export function GlobalBgmPlayer() {
+  const pathname = usePathname();
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const wantsPlaybackRef = useRef(true);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   const currentTrack = TRACKS[currentIndex];
-
-  useEffect(() => {
+  const attemptPlay = useCallback(async () => {
     const audio = audioRef.current;
-    if (!audio) return;
+    if (!audio || !wantsPlaybackRef.current) return false;
 
     audio.volume = 0.36;
-    audio.src = currentTrack.src;
-
-    if (isPlaying) {
-      void audio.play().catch(() => setIsPlaying(false));
+    try {
+      await audio.play();
+      setIsPlaying(true);
+      return true;
+    } catch {
+      setIsPlaying(false);
+      return false;
     }
-  }, [currentTrack.src, isPlaying]);
+  }, []);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -44,33 +49,53 @@ export function GlobalBgmPlayer() {
     audio.volume = 0.36;
     audio.src = currentTrack.src;
 
-    const tryPlay = async () => {
-      try {
-        await audio.play();
-        setIsPlaying(true);
-      } catch {
-        setIsPlaying(false);
-      }
+    if (wantsPlaybackRef.current) {
+      void attemptPlay();
+    }
+  }, [attemptPlay, currentTrack.src]);
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    audio.volume = 0.36;
+    audio.src = currentTrack.src;
+
+    void attemptPlay();
+
+    const unlockPlay = async () => {
+      if (!wantsPlaybackRef.current || !audio.paused) return;
+      await attemptPlay();
     };
 
-    void tryPlay();
-
-    const unlockPlay = () => {
-      if (!audio.paused) return;
-      void audio
-        .play()
-        .then(() => setIsPlaying(true))
-        .catch(() => setIsPlaying(false));
+    const retryWhenVisible = () => {
+      if (document.visibilityState === "visible") void attemptPlay();
     };
 
-    window.addEventListener("pointerdown", unlockPlay, { once: true });
-    window.addEventListener("keydown", unlockPlay, { once: true });
+    window.addEventListener("pointerdown", unlockPlay, true);
+    window.addEventListener("click", unlockPlay, true);
+    window.addEventListener("keydown", unlockPlay, true);
+    window.addEventListener("focus", retryWhenVisible);
+    window.addEventListener("pageshow", retryWhenVisible);
+    document.addEventListener("visibilitychange", retryWhenVisible);
 
     return () => {
-      window.removeEventListener("pointerdown", unlockPlay);
-      window.removeEventListener("keydown", unlockPlay);
+      window.removeEventListener("pointerdown", unlockPlay, true);
+      window.removeEventListener("click", unlockPlay, true);
+      window.removeEventListener("keydown", unlockPlay, true);
+      window.removeEventListener("focus", retryWhenVisible);
+      window.removeEventListener("pageshow", retryWhenVisible);
+      document.removeEventListener("visibilitychange", retryWhenVisible);
     };
-  }, []);
+  }, [attemptPlay, currentTrack.src]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      void attemptPlay();
+    }, 120);
+
+    return () => window.clearTimeout(timer);
+  }, [attemptPlay, pathname]);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -90,24 +115,22 @@ export function GlobalBgmPlayer() {
     if (!audio) return;
 
     if (isPlaying) {
+      wantsPlaybackRef.current = false;
       audio.pause();
       setIsPlaying(false);
       return;
     }
 
-    try {
-      await audio.play();
-      setIsPlaying(true);
-    } catch {
-      setIsPlaying(false);
-    }
+    wantsPlaybackRef.current = true;
+    await attemptPlay();
   };
 
   const playTrack = async (index: number) => {
+    wantsPlaybackRef.current = true;
     setCurrentIndex(index);
     setIsPlaying(true);
     requestAnimationFrame(() => {
-      void audioRef.current?.play().catch(() => setIsPlaying(false));
+      void attemptPlay();
     });
   };
 
