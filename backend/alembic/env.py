@@ -5,7 +5,24 @@ import sys
 from logging.config import fileConfig
 
 from alembic import context
-from sqlalchemy import engine_from_config, pool
+from sqlalchemy import engine_from_config, pool, Table, MetaData, Column, String, PrimaryKeyConstraint
+from alembic.ddl.impl import DefaultImpl
+
+# Monkeypatch DefaultImpl to support version IDs longer than 32 characters in PostgreSQL
+def patched_version_table_impl(self, *, version_table, version_table_schema, version_table_pk, **kw):
+    vt = Table(
+        version_table,
+        MetaData(),
+        Column("version_num", String(128), nullable=False),
+        schema=version_table_schema,
+    )
+    if version_table_pk:
+        vt.append_constraint(
+            PrimaryKeyConstraint("version_num", name=f"{version_table}_pkc")
+        )
+    return vt
+
+DefaultImpl.version_table_impl = patched_version_table_impl
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if BASE_DIR not in sys.path:
@@ -32,6 +49,7 @@ def run_migrations_offline() -> None:
         target_metadata=target_metadata,
         literal_binds=True,
         compare_type=True,
+        version_table_col_num_chars=128,
     )
 
     with context.begin_transaction():
@@ -52,6 +70,7 @@ def run_migrations_online() -> None:
             connection=connection,
             target_metadata=target_metadata,
             compare_type=True,
+            version_table_col_num_chars=128,
         )
 
         with context.begin_transaction():

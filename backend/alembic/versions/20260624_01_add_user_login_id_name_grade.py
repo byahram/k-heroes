@@ -117,19 +117,34 @@ def upgrade() -> None:
         )
         columns.add("grade")
 
-    bind.execute(
-        text(
-            """
-            UPDATE users
-            SET name = CASE
-                WHEN name IS NOT NULL AND TRIM(name) <> '' THEN name
-                WHEN nickname IS NOT NULL AND TRIM(nickname) <> '' THEN nickname
-                WHEN email IS NOT NULL AND INSTR(email, '@') > 1 THEN SUBSTR(email, 1, INSTR(email, '@') - 1)
-                ELSE 'user' || id
-            END
-            """
+    if bind.dialect.name == "postgresql":
+        bind.execute(
+            text(
+                """
+                UPDATE users
+                SET name = CASE
+                    WHEN name IS NOT NULL AND TRIM(name) <> '' THEN name
+                    WHEN nickname IS NOT NULL AND TRIM(nickname) <> '' THEN nickname
+                    WHEN email IS NOT NULL AND strpos(email, '@') > 1 THEN substr(email, 1, strpos(email, '@') - 1)
+                    ELSE 'user' || id
+                END
+                """
+            )
         )
-    )
+    else:
+        bind.execute(
+            text(
+                """
+                UPDATE users
+                SET name = CASE
+                    WHEN name IS NOT NULL AND TRIM(name) <> '' THEN name
+                    WHEN nickname IS NOT NULL AND TRIM(nickname) <> '' THEN nickname
+                    WHEN email IS NOT NULL AND INSTR(email, '@') > 1 THEN SUBSTR(email, 1, INSTR(email, '@') - 1)
+                    ELSE 'user' || id
+                END
+                """
+            )
+        )
     _ensure_login_ids(bind)
     bind.execute(
         text("UPDATE users SET auth_provider = 'local' WHERE auth_provider IS NULL OR TRIM(auth_provider) = ''")
