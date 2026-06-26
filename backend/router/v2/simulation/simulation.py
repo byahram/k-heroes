@@ -207,6 +207,7 @@ async def generate_ending(
         character_name=payload.character_name,
         character_image=character_card.image_url,
         history_accuracy=history_score,
+        history_score=history_score,
         selected_choices=selected_choices,
     )
 
@@ -268,6 +269,7 @@ def _play_session_to_response(session: PlaySession, ending: Ending, db: Session)
         character_name=session.character_name,
         character_image=character_image,
         history_accuracy=session.history_score,
+        history_score=session.history_score,
         selected_choices=selected_choices,
     )
 

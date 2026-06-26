@@ -114,6 +114,8 @@ def test_generate_ending_and_get_result(client, db_session, yi_scenario_id):
     assert ending_data["uuid"]
     assert "history_accuracy" in ending_data
     assert isinstance(ending_data["history_accuracy"], int)
+    assert "history_score" in ending_data
+    assert ending_data["history_score"] == ending_data["history_accuracy"]
     assert "character_image" in ending_data
     assert "selected_choices" in ending_data
     assert len(ending_data["selected_choices"]) == 3
@@ -144,6 +146,7 @@ def test_generate_ending_and_get_result(client, db_session, yi_scenario_id):
     assert result_data["ending_markdown"]
     assert result_data["character_image"] == ending_data["character_image"]
     assert result_data["history_accuracy"] == ending_data["history_accuracy"]
+    assert result_data["history_score"] == ending_data["history_score"]
     assert len(result_data["selected_choices"]) == 3
 
 

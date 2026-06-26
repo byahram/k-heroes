@@ -103,6 +103,7 @@ class EndingResponse(BaseModel):
     character_name: Optional[str] = ""
     character_image: Optional[str] = ""
     history_accuracy: Optional[int] = None
+    history_score: Optional[int] = None
     selected_choices: Optional[List[SelectedChoiceDetail]] = None
 
 

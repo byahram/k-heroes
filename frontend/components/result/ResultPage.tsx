@@ -104,6 +104,8 @@ export interface EndingResponse {
   final_stats?: Record<string, number>;
   choices_history?: boolean[];
   character_name?: string;
+  history_score?: number;
+  history_accuracy?: number;
 }
 
 function getResultNum(code: string) {

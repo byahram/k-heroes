@@ -1144,7 +1144,7 @@ def generate_endings_text_for_character_scenario(character_name: str, target_sce
                 if turn_stats_id in stat_lookup
             }
                         
-            history_score = int((historical_choices_count / total_turns) * 100) if total_turns > 0 else 100
+            history_score = round((historical_choices_count / total_turns) * 100) if total_turns > 0 else 100
             is_all_historical = (historical_choices_count == total_turns)
             
             # Compile stories

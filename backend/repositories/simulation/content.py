@@ -372,7 +372,7 @@ def compute_play_results(
     }
 
     history_score = (
-        int((historical_choices_count / total_turns) * 100) if total_turns > 0 else 100
+        round((historical_choices_count / total_turns) * 100) if total_turns > 0 else 100
     )
     return history_score, current_stats, historical_choices_count
 
