@@ -5,12 +5,13 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
-from db.models import Ending, PlaySession, Scenario, User
+from db.models import Character, Ending, PlaySession, Scenario, User
 from repositories.simulation.content import (
     CharacterNotFoundError,
     EndingNotFoundError,
     ScenarioNotFoundError,
     build_choices_history,
+    build_selected_choices,
     build_ending_markdown,
     compute_play_results,
     resolve_play_session_choices_history,
@@ -185,6 +186,8 @@ async def generate_ending(
     db.add(play_session)
     db.commit()
 
+    selected_choices = build_selected_choices(scenario, payload.choices_path)
+
     return EndingResponse(
         result_code="-".join(payload.choices_path),
         ending_type=ending_type,
@@ -202,10 +205,13 @@ async def generate_ending(
         final_stats=current_stats,
         choices_history=choices_history,
         character_name=payload.character_name,
+        character_image=character_card.image_url,
+        history_accuracy=history_score,
+        selected_choices=selected_choices,
     )
 
 
-def _play_session_to_response(session: PlaySession, ending: Ending) -> EndingResponse:
+def _play_session_to_response(session: PlaySession, ending: Ending, db: Session) -> EndingResponse:
     summary_items = map_summary_items(ending.summary_items)
     recommended_places = map_recommended_places(ending.recommended_places)
     if not recommended_places:
@@ -227,6 +233,21 @@ def _play_session_to_response(session: PlaySession, ending: Ending) -> EndingRes
     )
 
     choices_history = resolve_play_session_choices_history(session)
+    try:
+        scenario_item = get_scenario_item(db, session.character_name, session.scenario_id)
+        selected_choices = build_selected_choices(scenario_item, session.choices_path or [])
+    except Exception:
+        selected_choices = []
+
+    character = db.scalar(
+        select(Character)
+        .where(
+            Character.name == session.character_name,
+            Character.is_active.is_(True),
+            Character.deleted_at.is_(None),
+        )
+    )
+    character_image = character.image_url if character else ""
 
     return EndingResponse(
         result_code="-".join(session.choices_path or []),
@@ -245,6 +266,9 @@ def _play_session_to_response(session: PlaySession, ending: Ending) -> EndingRes
         final_stats=session.final_stats,
         choices_history=choices_history,
         character_name=session.character_name,
+        character_image=character_image,
+        history_accuracy=session.history_score,
+        selected_choices=selected_choices,
     )
 
 
@@ -267,4 +291,4 @@ async def get_simulation_result_api(uuid: str, db: Session = Depends(get_db)):
     if not ending:
         raise HTTPException(status_code=404, detail="연결된 엔딩 데이터를 찾을 수 없습니다.")
 
-    return _play_session_to_response(session, ending)
+    return _play_session_to_response(session, ending, db)
