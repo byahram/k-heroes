@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Play, Menu, X } from "lucide-react";
 import { BrandLogo } from "./BrandLogo";
 import { useAuthMe } from "@/hooks/use-auth-me";
@@ -22,13 +23,30 @@ const NAV_LINKS = [
   { label: "활용 데이터", target: "data" },
 ];
 
+function getPageTitle(pathname: string) {
+  if (pathname.startsWith("/mypage/settings")) return "설정";
+  if (pathname.startsWith("/mypage")) return "마이페이지";
+  if (pathname.startsWith("/faq")) return "자주 묻는 질문";
+  if (pathname.startsWith("/classes")) return "클래스";
+  if (pathname.startsWith("/map")) return "인물 선택";
+  if (pathname.startsWith("/character")) return "인물 상세";
+  if (pathname.startsWith("/simulation")) return "시뮬레이션";
+  if (pathname.startsWith("/ending")) return "결과";
+  if (pathname.startsWith("/legal/privacy")) return "개인정보처리방침";
+  if (pathname.startsWith("/legal/terms")) return "이용약관";
+  return "K-Heroes";
+}
+
 export function NavBar({ onStart }: { onStart?: () => void }) {
+  const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const { data: user, isLoading: isCheckingAuth } = useAuthMe();
   const { handleLogout, isLoggingOut, logoutDialogOpen, setLogoutDialogOpen } = useLogout();
   const isLoggedIn = Boolean(user);
   const displayName = user?.nickname || user?.name || user?.login_id || "회원";
+  const isHome = pathname === "/";
+  const pageTitle = getPageTitle(pathname);
 
   useEffect(() => {
     const handler = () => setScrolled(window.scrollY > 30);
@@ -57,20 +75,33 @@ export function NavBar({ onStart }: { onStart?: () => void }) {
           {/* Logo */}
           <BrandLogo showBeta />
 
-          {/* Desktop Nav */}
-          <div className="hidden md:flex items-center gap-8">
-            {NAV_LINKS.map((item) => (
-              <button
-                key={item.label}
-                type="button"
-                onClick={() => scrollToSection(item.target)}
-                className="transition-colors text-sm"
-                style={{ color: "#4A4438", fontFamily: "'Noto Sans KR', sans-serif" }}
-              >
-                {item.label}
-              </button>
-            ))}
-          </div>
+          {isHome ? (
+            <div className="hidden md:flex items-center gap-8">
+              {NAV_LINKS.map((item) => (
+                <button
+                  key={item.label}
+                  type="button"
+                  onClick={() => scrollToSection(item.target)}
+                  className="transition-colors text-sm"
+                  style={{ color: "#4A4438", fontFamily: "'Noto Sans KR', sans-serif" }}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div
+              className="pointer-events-none absolute left-1/2 max-w-[42vw] -translate-x-1/2 truncate text-center"
+              style={{
+                color: "#2A4232",
+                fontFamily: "'Noto Serif KR', serif",
+                fontSize: "0.98rem",
+                fontWeight: 800,
+              }}
+            >
+              {pageTitle}
+            </div>
+          )}
 
           {/* CTA */}
           <div className="flex items-center gap-3">
@@ -123,23 +154,24 @@ export function NavBar({ onStart }: { onStart?: () => void }) {
             className="md:hidden px-6 pb-4"
             style={{ background: "rgba(253,250,244,0.97)", borderTop: "1px solid rgba(42,66,50,0.08)" }}
           >
-            {NAV_LINKS.map((item) => (
-              <button
-                key={item.label}
-                type="button"
-                onClick={() => scrollToSection(item.target)}
-                className="block py-3 text-sm border-b"
-                style={{
-                  width: "100%",
-                  textAlign: "left",
-                  color: "#4A4438",
-                  borderColor: "rgba(42,66,50,0.08)",
-                  fontFamily: "'Noto Sans KR', sans-serif",
-                }}
-              >
-                {item.label}
-              </button>
-            ))}
+            {isHome &&
+              NAV_LINKS.map((item) => (
+                <button
+                  key={item.label}
+                  type="button"
+                  onClick={() => scrollToSection(item.target)}
+                  className="block py-3 text-sm border-b"
+                  style={{
+                    width: "100%",
+                    textAlign: "left",
+                    color: "#4A4438",
+                    borderColor: "rgba(42,66,50,0.08)",
+                    fontFamily: "'Noto Sans KR', sans-serif",
+                  }}
+                >
+                  {item.label}
+                </button>
+              ))}
             {!isCheckingAuth && (
               <div className="mt-4 space-y-2">
                 {isLoggedIn ? (

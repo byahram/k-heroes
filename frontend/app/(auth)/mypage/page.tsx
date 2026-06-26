@@ -194,11 +194,7 @@ export default function MypagePage() {
         </div>
 
         <div
-          className="fixed inset-x-0 bottom-0 z-40 border-t backdrop-blur-md"
-          style={{
-            borderColor: "rgba(42,66,50,0.12)",
-            background: "rgba(253,250,244,0.92)",
-          }}
+          className="fixed inset-x-0 bottom-0 z-40"
         >
           <div className="mx-auto flex max-w-4xl gap-3 px-6 py-4">
             <AuthButton className="min-w-0 flex-1" onClick={() => router.push("/map")} type="button">
