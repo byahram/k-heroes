@@ -106,3 +106,7 @@ def verify_google_id_token(token: str) -> Dict[str, Any]:
         _log_google_token_audience_hint(token, client_id)
         print(f"[google-auth] token verify failed: {exc}", flush=True)
         raise ValueError(str(exc)) from exc
+
+
+def get_cookie_samesite() -> str:
+    return os.environ.get("COOKIE_SAMESITE", "lax").lower()

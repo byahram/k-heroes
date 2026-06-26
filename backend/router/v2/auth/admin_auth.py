@@ -8,6 +8,7 @@ from core.security import (
     create_access_token,
     get_jwt_expire_hours,
     verify_password,
+    get_cookie_samesite,
 )
 from db.database import get_db
 from db.models import AdminUser
@@ -80,7 +81,7 @@ def create_session(
         httponly=True,
         max_age=get_jwt_expire_hours() * 60 * 60,
         path="/",
-        samesite="lax",
+        samesite=get_cookie_samesite(),
         secure=os.environ.get("ADMIN_COOKIE_SECURE", "false").lower() == "true",
     )
     return AdminSessionResponse(admin_user=AdminUserResponse.model_validate(admin_user))
@@ -93,7 +94,7 @@ def delete_session(response: Response):
         key=ADMIN_SESSION_COOKIE,
         path="/",
         httponly=True,
-        samesite="lax",
+        samesite=get_cookie_samesite(),
         secure=os.environ.get("ADMIN_COOKIE_SECURE", "false").lower() == "true",
     )
 
