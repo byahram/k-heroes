@@ -10,7 +10,13 @@ function normalizeCharId(charId: string) {
 
 function SimulationEnterOverlay() {
   return (
-    <div className="fixed inset-0 z-[90] overflow-hidden">
+    <div
+      className="fixed inset-0 z-[90] overflow-hidden"
+      style={{
+        background: "transparent",
+        touchAction: "none",
+      }}
+    >
       <style>{`
         @keyframes khEnterMist {
           0% { transform: translateX(-72%) skewX(-7deg); opacity: 0; }

@@ -85,22 +85,13 @@ export function NavBar({ onStart }: { onStart?: () => void }) {
                   {displayName}님 환영합니다
                 </Link>
               ) : (
-                <>
-                  <Link
-                    href="/login"
-                    className="hidden md:inline-flex text-sm transition-colors hover:text-[#2A4232]"
-                    style={{ color: "#4A4438", fontFamily: "'Noto Sans KR', sans-serif" }}
-                  >
-                    로그인
-                  </Link>
-                  <Link
-                    href="/signup"
-                    className="hidden md:inline-flex text-sm transition-colors hover:text-[#2A4232]"
-                    style={{ color: "#4A4438", fontFamily: "'Noto Sans KR', sans-serif" }}
-                  >
-                    회원가입
-                  </Link>
-                </>
+                <Link
+                  href="/login"
+                  className="hidden md:inline-flex text-sm transition-colors hover:text-[#2A4232]"
+                  style={{ color: "#4A4438", fontFamily: "'Noto Sans KR', sans-serif" }}
+                >
+                  로그인
+                </Link>
               )
             )}
             <button
@@ -184,32 +175,18 @@ export function NavBar({ onStart }: { onStart?: () => void }) {
                     </button>
                   </>
                 ) : (
-                  <div className="grid grid-cols-2 gap-2">
-                    <Link
-                      href="/login"
-                      className="block w-full rounded-lg border py-2.5 text-center text-sm transition-colors hover:bg-[rgba(42,66,50,0.04)]"
-                      onClick={() => setMobileOpen(false)}
-                      style={{
-                        color: "#4A4438",
-                        borderColor: "rgba(42,66,50,0.18)",
-                        fontFamily: "'Noto Sans KR', sans-serif",
-                      }}
-                    >
-                      로그인
-                    </Link>
-                    <Link
-                      href="/signup"
-                      className="block w-full rounded-lg border py-2.5 text-center text-sm transition-colors hover:bg-[rgba(42,66,50,0.04)]"
-                      onClick={() => setMobileOpen(false)}
-                      style={{
-                        color: "#4A4438",
-                        borderColor: "rgba(42,66,50,0.18)",
-                        fontFamily: "'Noto Sans KR', sans-serif",
-                      }}
-                    >
-                      회원가입
-                    </Link>
-                  </div>
+                  <Link
+                    href="/login"
+                    className="block w-full rounded-lg border py-2.5 text-center text-sm transition-colors hover:bg-[rgba(42,66,50,0.04)]"
+                    onClick={() => setMobileOpen(false)}
+                    style={{
+                      color: "#4A4438",
+                      borderColor: "rgba(42,66,50,0.18)",
+                      fontFamily: "'Noto Sans KR', sans-serif",
+                    }}
+                  >
+                    로그인
+                  </Link>
                 )}
               </div>
             )}
