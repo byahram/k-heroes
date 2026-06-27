@@ -24,7 +24,7 @@ class InMemoryHistoryRAG:
         if not os.path.exists(db_pickle_path):
             print(f"[RAG] DB 파일({db_pickle_path})이 존재하지 않아 자동 빌드를 수행합니다...")
             base_dir = os.path.dirname(db_pickle_path)
-            raw_pdf_path = os.path.join(base_dir, "..", "raw", "고등학교_국사_(7차_교육과정).pdf")
+            raw_pdf_path = os.path.join(base_dir, "..", "raw", "고등학교_국사_(7차_교육과정).pdf")
             
             # 파일명 NFD/NFC 정규화 차이 등으로 인해 경로가 없을 경우를 대비하여 폴더 스캔
             if not os.path.exists(raw_pdf_path):
@@ -36,7 +36,7 @@ class InMemoryHistoryRAG:
                             break
                             
             if os.path.exists(raw_pdf_path):
-                from history_pdf_db_builder import build_db
+                from utils.history_pdf_db_builder import build_db
                 os.makedirs(os.path.dirname(db_pickle_path), exist_ok=True)
                 build_db(raw_pdf_path, db_pickle_path)
             else:

@@ -56,11 +56,35 @@ def build_db(pdf_path, output_pickle_path):
         "embeddings": np.array(embeddings, dtype=np.float32) # 메모리 절약형 float32 지정
     }
     
+    os.makedirs(os.path.dirname(output_pickle_path), exist_ok=True)
     with open(output_pickle_path, "wb") as f:
         pickle.dump(db_data, f)
     print(f"[SUCCESS] 인메모리 벡터 DB 파일 빌드 완료: {output_pickle_path}")
 
+    # GCS 업로드 추가
+    gcp_bucket_name = os.environ.get("GCP_BUCKET_NAME")
+    gcp_project_id = os.environ.get("GCP_PROJECT_ID")
+    if gcp_bucket_name:
+        try:
+            from google.cloud import storage
+            client = storage.Client(project=gcp_project_id)
+            bucket = client.bucket(gcp_bucket_name)
+            filename = os.path.basename(output_pickle_path)
+            blob = bucket.blob(f"assets/processed/{filename}")
+            blob.upload_from_filename(output_pickle_path)
+            print(f"[SUCCESS] GCS 업로드 완료: gs://{gcp_bucket_name}/assets/processed/{filename}")
+        except Exception as e:
+            print(f"[WARNING] GCS 업로드 중 오류 발생 (로컬 캐시만 유지): {e}")
+    else:
+        print("[INFO] GCP_BUCKET_NAME 설정이 없어 로컬 캐시로 저장 완료")
+
 if __name__ == "__main__":
-    pdf_path = "./backend/data/raw/고등학교_국사_(7차_교육과정).pdf"
+    pdf_path = "./backend/data/raw/고등학교_국사_(7차_교육과정).pdf"
+    if not os.path.exists(pdf_path):
+        pdf_path = "./data/raw/고등학교_국사_(7차_교육과정).pdf"
+        
     output_path = "./backend/data/processed/history_db.pkl"
+    if not os.path.exists(os.path.dirname(output_path)):
+        output_path = "./data/processed/history_db.pkl"
+        
     build_db(pdf_path, output_path)

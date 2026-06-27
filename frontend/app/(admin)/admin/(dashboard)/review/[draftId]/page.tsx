@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import { ArrowLeft, Save, Send, Image as ImageIcon, Sparkles, RefreshCw, CheckCircle, HelpCircle, ShieldAlert } from "lucide-react";
 import { AdminPageHeader } from "@/app/(admin)/_components/admin-page-header";
 import { AdminButton } from "@/app/(admin)/_components/admin-button";
@@ -415,7 +416,7 @@ export default function ReviewDetailPage() {
                 </div>
                 
                 <AdminButton
-                  variant="outline"
+                  variant="secondary"
                   className="w-full flex items-center justify-center gap-1"
                   disabled={generatingImages["portrait"]}
                   onClick={() => triggerImageRebuild("portrait", (url) => handleInfoChange("image_url", url))}
@@ -449,7 +450,7 @@ export default function ReviewDetailPage() {
                         )}
                       </div>
                       <AdminButton
-                        variant="outline"
+                        variant="secondary"
                         size="sm"
                         className="w-full flex items-center justify-center gap-1"
                         disabled={generatingImages[`turn_${turn.turn_no}`]}
@@ -538,7 +539,7 @@ export default function ReviewDetailPage() {
               </AdminButton>
               
               <AdminButton
-                variant="outline"
+                variant="secondary"
                 className="w-full bg-white hover:bg-[#F4F1EA]"
                 onClick={() => {
                   alert("임시 저장되었습니다.");

@@ -123,14 +123,13 @@ export default function PipelinePage() {
                     value={era}
                     onChange={(e) => setEra(e.target.value)}
                     disabled={status === "running"}
-                    options={[
-                      { label: "조선 시대", value: "조선 시대" },
-                      { label: "조선 후기", value: "조선 후기" },
-                      { label: "일제강점기", value: "일제강점기" },
-                      { label: "근현대", value: "근현대" },
-                      { label: "고려 시대", value: "고려 시대" },
-                    ]}
-                  />
+                  >
+                    <option value="조선 시대">조선 시대</option>
+                    <option value="조선 후기">조선 후기</option>
+                    <option value="일제강점기">일제강점기</option>
+                    <option value="근현대">근현대</option>
+                    <option value="고려 시대">고려 시대</option>
+                  </AdminSelect>
                 </div>
 
                 <div>
@@ -141,11 +140,10 @@ export default function PipelinePage() {
                     value={selectedRag}
                     onChange={(e) => setSelectedRag(e.target.value)}
                     disabled={status === "running"}
-                    options={[
-                      { label: "history_db.pkl (국사교과서)", value: "history_db.pkl" },
-                      { label: "대한제국_의병운동_연구자료 (PDF 추가본)", value: "rebels_db.pkl" },
-                    ]}
-                  />
+                  >
+                    <option value="history_db.pkl">history_db.pkl (국사교과서)</option>
+                    <option value="rebels_db.pkl">대한제국_의병운동_연구자료 (PDF 추가본)</option>
+                  </AdminSelect>
                 </div>
               </div>
 
