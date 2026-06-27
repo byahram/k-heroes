@@ -76,6 +76,14 @@ class EndingRequest(BaseModel):
     choices_path: List[str]
     force_eval: Optional[bool] = False
 
+class SelectedChoiceDetail(BaseModel):
+    turn_no: int
+    turn_title: str
+    choice_key: str
+    title: str
+    is_historical: bool
+    image_url: Optional[str] = ""
+
 class EndingResponse(BaseModel):
     result_code: str
     ending_type: str
@@ -93,6 +101,10 @@ class EndingResponse(BaseModel):
     final_stats: Optional[Dict[str, int]] = None
     choices_history: Optional[List[bool]] = None
     character_name: Optional[str] = ""
+    character_image: Optional[str] = ""
+    history_accuracy: Optional[int] = None
+    history_score: Optional[int] = None
+    selected_choices: Optional[List[SelectedChoiceDetail]] = None
 
 
 

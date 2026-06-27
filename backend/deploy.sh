@@ -31,10 +31,18 @@ grep -v '^#' ../.env | grep -v '^$' | sed 's/[[:space:]]*#.*$//' | while read -r
   [ -z "$line" ] && continue
   key=$(echo "$line" | cut -d '=' -f1 | xargs)
   value=$(echo "$line" | cut -d '=' -f2- | xargs)
+  if [ "$key" = "ADMIN_COOKIE_SECURE" ] || [ "$key" = "USER_COOKIE_SECURE" ] || [ "$key" = "COOKIE_SAMESITE" ]; then
+    continue
+  fi
   echo "$key: \"$value\"" >> "$ENV_YAML"
 done
 # GCP_PROJECT_ID 명시적 추가 (기존에 없는 경우에만)
 grep -q "^GCP_PROJECT_ID:" "$ENV_YAML" || echo "GCP_PROJECT_ID: \"$PROJECT_ID\"" >> "$ENV_YAML"
+
+# 실서버 HTTPS 크로스 도메인 환경을 위한 쿠키 설정 명시적 추가 (SameSite=None, Secure=True)
+echo "ADMIN_COOKIE_SECURE: \"true\"" >> "$ENV_YAML"
+echo "USER_COOKIE_SECURE: \"true\"" >> "$ENV_YAML"
+echo "COOKIE_SAMESITE: \"none\"" >> "$ENV_YAML"
 
 
 # Cloud Run 배포 실행 (수파베이스 연동용으로 볼륨 마운트 없이 심플하게 배포)

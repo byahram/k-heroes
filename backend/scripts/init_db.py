@@ -25,7 +25,7 @@ import db.models  # noqa: F401
 def _run_alembic_upgrade() -> None:
     alembic_cfg = Config(os.path.join(BASE_DIR, "alembic.ini"))
     alembic_cfg.set_main_option("script_location", os.path.join(BASE_DIR, "alembic"))
-    alembic_cfg.set_main_option("sqlalchemy.url", DATABASE_URL)
+    alembic_cfg.set_main_option("sqlalchemy.url", DATABASE_URL.replace("%", "%%"))
     command.upgrade(alembic_cfg, "head")
 
 

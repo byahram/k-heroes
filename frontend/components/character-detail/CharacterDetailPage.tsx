@@ -840,6 +840,8 @@ function ScenarioCard({
   index: number;
   onStart: () => void;
 }) {
+  const [imageLoaded, setImageLoaded] = useState(false);
+
   return (
     <div
       className="rounded-2xl overflow-hidden transition-all duration-200 hover:shadow-md hover:-translate-y-0.5"
@@ -851,6 +853,23 @@ function ScenarioCard({
         WebkitBackdropFilter: 'blur(5px)',
       }}
     >
+      <style>{`
+        .kh-detail-image-skeleton {
+          position: relative;
+          overflow: hidden;
+        }
+        .kh-detail-image-skeleton::after {
+          content: "";
+          position: absolute;
+          inset: 0;
+          transform: translateX(-100%);
+          background: linear-gradient(100deg, rgba(253,250,244,0) 0%, rgba(253,250,244,0.68) 44%, rgba(224,211,184,0.38) 58%, rgba(253,250,244,0) 100%);
+          animation: khDetailImageSkeleton 1.2s ease-in-out infinite;
+        }
+        @keyframes khDetailImageSkeleton {
+          to { transform: translateX(100%); }
+        }
+      `}</style>
       <div className="flex items-stretch gap-4 sm:gap-6">
         {/* 시나리오 대표 이미지 썸네일 */}
         <div
@@ -860,11 +879,23 @@ function ScenarioCard({
               'linear-gradient(135deg, rgba(42,66,50,0.08), rgba(154,142,126,0.13), rgba(42,66,50,0.06))',
           }}
         >
+          {scenario.imageUrl && !imageLoaded && (
+            <div
+              className="kh-detail-image-skeleton absolute inset-0"
+              style={{
+                background:
+                  'linear-gradient(135deg, rgba(42,66,50,0.09), rgba(154,142,126,0.15), rgba(42,66,50,0.07))',
+              }}
+            />
+          )}
           {scenario.imageUrl ? (
             <img
               src={scenario.imageUrl}
               alt={scenario.title}
-              className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
+              onLoad={() => setImageLoaded(true)}
+              onError={() => setImageLoaded(true)}
+              className="w-full h-full object-cover transition-all duration-500 hover:scale-105"
+              style={{ opacity: imageLoaded ? 1 : 0 }}
             />
           ) : null}
           <div
@@ -1042,6 +1073,7 @@ export function CharacterDetailPage({
     () => detailCache.get(getApiName(charId)) ?? null,
   );
   const [isLoading, setIsLoading] = useState(!apiPayload);
+  const [canShowEmptyState, setCanShowEmptyState] = useState(Boolean(apiPayload));
   const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -1050,12 +1082,18 @@ export function CharacterDetailPage({
 
     setApiPayload(cachedPayload);
     setIsLoading(!cachedPayload);
+    setCanShowEmptyState(Boolean(cachedPayload));
     setLoadError(null);
+
+    const emptyTimer = window.setTimeout(() => {
+      if (isActive) setCanShowEmptyState(true);
+    }, 1000);
 
     fetchCharacterDetail(charId)
       .then((payload) => {
         if (!isActive) return;
         setApiPayload(payload);
+        setCanShowEmptyState(true);
       })
       .catch((error: unknown) => {
         if (!isActive) return;
@@ -1069,11 +1107,71 @@ export function CharacterDetailPage({
 
     return () => {
       isActive = false;
+      window.clearTimeout(emptyTimer);
     };
   }, [charId]);
 
   const char = apiPayload?.char ?? null;
   const scenarios = apiPayload?.scenarios ?? [];
+
+  if (!char && (isLoading || !canShowEmptyState)) {
+    return (
+      <div className="fixed inset-0 z-50 overflow-y-auto" style={storyPageBackground}>
+        <PageHeader
+          onBack={onBack}
+          backLabel="인물 목록으로"
+          centerContent={
+            <span
+              style={{
+                fontFamily: "'Noto Serif KR', serif",
+                fontWeight: 600,
+                fontSize: '0.88rem',
+                color: '#2A4232',
+              }}
+            >
+              인물 정보
+            </span>
+          }
+        />
+        <div className="max-w-[820px] mx-auto px-6 py-16">
+          <div
+            className="rounded-2xl px-6 py-8"
+            style={{
+              background: 'rgba(253,250,244,0.72)',
+              border: '1px solid rgba(42,66,50,0.09)',
+              boxShadow: '0 2px 16px rgba(42,66,50,0.06)',
+              backdropFilter: 'blur(5px)',
+              WebkitBackdropFilter: 'blur(5px)',
+            }}
+          >
+            <style>{`
+              .kh-detail-loading-line {
+                position: relative;
+                overflow: hidden;
+                border-radius: 999px;
+                background: linear-gradient(90deg, rgba(42,66,50,0.08), rgba(42,66,50,0.15), rgba(154,142,126,0.1));
+              }
+              .kh-detail-loading-line::after {
+                content: "";
+                position: absolute;
+                inset: 0;
+                transform: translateX(-100%);
+                background: linear-gradient(90deg, transparent, rgba(253,250,244,0.58), transparent);
+                animation: khDetailLoadingFlow 1.2s ease-in-out infinite;
+              }
+              @keyframes khDetailLoadingFlow {
+                to { transform: translateX(100%); }
+              }
+            `}</style>
+            <div className="kh-detail-loading-line mb-4 h-5 w-32" />
+            <div className="kh-detail-loading-line mb-3 h-8 w-[52%]" />
+            <div className="kh-detail-loading-line mb-2 h-4 w-[88%]" />
+            <div className="kh-detail-loading-line h-4 w-[64%]" />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!char) {
     return (

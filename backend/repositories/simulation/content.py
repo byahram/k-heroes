@@ -16,7 +16,7 @@ from models.character.character import (
     TurnItem,
     TurnStatGameItem,
 )
-from models.simulation.simulation import RecommendedPlace, SummaryItem
+from models.simulation.simulation import RecommendedPlace, SummaryItem, SelectedChoiceDetail
 from repositories.character.character_stats import stat_items_from_json
 from repositories.character.character_turn_stats import active_turn_stats
 from repositories.scenario.turn_stats import DEFAULT_GAME_STAT_VALUE
@@ -315,6 +315,29 @@ def build_choices_history(scenario: ScenarioItem, choices_path: List[str]) -> Li
     return history
 
 
+def build_selected_choices(scenario: ScenarioItem, choices_path: List[str]) -> List[SelectedChoiceDetail]:
+    selected: List[SelectedChoiceDetail] = []
+    for idx, turn in enumerate(scenario.turns):
+        if idx >= len(choices_path):
+            break
+        user_choice_key = choices_path[idx]
+        user_choice = turn.choices.get(user_choice_key)
+        if not user_choice:
+            user_choice = next(iter(turn.choices.values()), None)
+        if user_choice:
+            selected.append(
+                SelectedChoiceDetail(
+                    turn_no=turn.sort_order,
+                    turn_title=turn.title,
+                    choice_key=user_choice_key,
+                    title=user_choice.title,
+                    is_historical=user_choice.is_historical,
+                    image_url=user_choice.choice_image or turn.turn_image or "",
+                )
+            )
+    return selected
+
+
 def resolve_play_session_choices_history(session: PlaySession) -> List[bool]:
     return list(session.choices_history or [])
 
@@ -349,7 +372,7 @@ def compute_play_results(
     }
 
     history_score = (
-        int((historical_choices_count / total_turns) * 100) if total_turns > 0 else 100
+        round((historical_choices_count / total_turns) * 100) if total_turns > 0 else 100
     )
     return history_score, current_stats, historical_choices_count
 

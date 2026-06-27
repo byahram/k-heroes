@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { GlobalBgmPlayer } from "@/components/layout/GlobalBgmPlayer";
 import { Providers } from "@/components/layout/providers";
 import { site } from "@/lib/site";
 
@@ -23,6 +24,7 @@ export default function RootLayout({
       <body>
         <Providers>
           <main>{children}</main>
+          <GlobalBgmPlayer />
         </Providers>
       </body>
     </html>

@@ -112,6 +112,20 @@ def test_generate_ending_and_get_result(client, db_session, yi_scenario_id):
     assert ending_data["title"]
     assert ending_data["summary_items"]
     assert ending_data["uuid"]
+    assert "history_accuracy" in ending_data
+    assert isinstance(ending_data["history_accuracy"], int)
+    assert "history_score" in ending_data
+    assert ending_data["history_score"] == ending_data["history_accuracy"]
+    assert "character_image" in ending_data
+    assert "selected_choices" in ending_data
+    assert len(ending_data["selected_choices"]) == 3
+    for choice in ending_data["selected_choices"]:
+        assert "turn_no" in choice
+        assert "turn_title" in choice
+        assert "choice_key" in choice
+        assert "title" in choice
+        assert "is_historical" in choice
+        assert "image_url" in choice
 
     session = db_session.scalar(select(PlaySession).where(PlaySession.id == ending_data["uuid"]))
     assert session is not None
@@ -130,6 +144,10 @@ def test_generate_ending_and_get_result(client, db_session, yi_scenario_id):
     assert result_data["uuid"] == ending_data["uuid"]
     assert result_data["title"] == ending_data["title"]
     assert result_data["ending_markdown"]
+    assert result_data["character_image"] == ending_data["character_image"]
+    assert result_data["history_accuracy"] == ending_data["history_accuracy"]
+    assert result_data["history_score"] == ending_data["history_score"]
+    assert len(result_data["selected_choices"]) == 3
 
 
 def test_generate_ending_links_logged_in_user_and_lists_sessions(client, db_session, yi_scenario_id, jwt_env):

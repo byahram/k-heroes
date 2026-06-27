@@ -501,18 +501,17 @@ function StepTransitionSkeleton({
         }}
       />
       {ending && (
-      <div className="absolute inset-0 flex items-center justify-center px-6 text-center">
-        <div
-          className="max-w-[560px] rounded-[18px] px-7 py-6"
-          style={{
-            background: "rgba(253,250,244,0.78)",
-            border: "1px solid rgba(42,66,50,0.08)",
-            boxShadow: "0 16px 44px rgba(42,66,50,0.08)",
-            backdropFilter: "blur(3px)",
-            WebkitBackdropFilter: "blur(3px)",
-          }}
-        >
-          {ending && (
+        <div className="absolute inset-0 flex items-center justify-center px-6 text-center">
+          <div
+            className="max-w-[560px] rounded-[18px] px-7 py-6"
+            style={{
+              background: "rgba(253,250,244,0.78)",
+              border: "1px solid rgba(42,66,50,0.08)",
+              boxShadow: "0 16px 44px rgba(42,66,50,0.08)",
+              backdropFilter: "blur(3px)",
+              WebkitBackdropFilter: "blur(3px)",
+            }}
+          >
             <div
               aria-hidden
               className="mx-auto mb-5 h-2 w-44 origin-left rounded-full"
@@ -523,36 +522,35 @@ function StepTransitionSkeleton({
                 filter: "blur(0.2px)",
               }}
             />
-          )}
-          <h2
-            className={ending ? "kh-ending-brush" : "kh-transition-copy"}
-            style={{
-              fontFamily: "'Noto Serif KR', serif",
-              fontWeight: 900,
-              color: "#1A1714",
-              fontSize: ending ? "clamp(1.55rem, 4.8vw, 2.85rem)" : "clamp(1.4rem, 4vw, 2.35rem)",
-              lineHeight: 1.32,
-              whiteSpace: "pre-line",
-              textShadow: "0 1px 0 rgba(253,250,244,0.4)",
-            }}
-          >
-            {title}
-          </h2>
-          <p
-            className="kh-transition-copy mt-4"
-            style={{
-              animationDelay: ending ? "0.72s" : "0.08s",
-              fontFamily: "'Noto Sans KR', sans-serif",
-              color: "#5F574D",
-              fontSize: ending ? "0.92rem" : "0.88rem",
-              fontWeight: 700,
-              lineHeight: 1.7,
-            }}
-          >
-            {description}
-          </p>
+            <h2
+              className="kh-ending-brush"
+              style={{
+                fontFamily: "'Noto Serif KR', serif",
+                fontWeight: 900,
+                color: "#1A1714",
+                fontSize: "clamp(1.55rem, 4.8vw, 2.85rem)",
+                lineHeight: 1.32,
+                whiteSpace: "pre-line",
+                textShadow: "0 1px 0 rgba(253,250,244,0.4)",
+              }}
+            >
+              {title}
+            </h2>
+            <p
+              className="kh-transition-copy mt-4"
+              style={{
+                animationDelay: "0.72s",
+                fontFamily: "'Noto Sans KR', sans-serif",
+                color: "#5F574D",
+                fontSize: "0.92rem",
+                fontWeight: 700,
+                lineHeight: 1.7,
+              }}
+            >
+              {description}
+            </p>
+          </div>
         </div>
-      </div>
       )}
     </div>
   );

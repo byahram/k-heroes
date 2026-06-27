@@ -10,6 +10,7 @@ from core.security import (
     get_jwt_expire_hours,
     get_remember_me_expire_hours,
     verify_google_id_token,
+    get_cookie_samesite,
 )
 from core.auth_policy import InvalidEmailError, InvalidLoginIdError
 from db.database import get_db
@@ -129,7 +130,7 @@ def create_session(
         httponly=True,
         max_age=expire_hours * 60 * 60 if body.remember_me else None,
         path="/",
-        samesite="lax",
+        samesite=get_cookie_samesite(),
         secure=os.environ.get("USER_COOKIE_SECURE", "false").lower() == "true",
     )
     return UserSessionResponse(user=UserResponse.model_validate(user))
@@ -150,7 +151,7 @@ def create_google_session(
         httponly=True,
         max_age=get_jwt_expire_hours() * 60 * 60,
         path="/",
-        samesite="lax",
+        samesite=get_cookie_samesite(),
         secure=os.environ.get("USER_COOKIE_SECURE", "false").lower() == "true",
     )
     return UserSessionResponse(user=UserResponse.model_validate(user))
@@ -163,7 +164,7 @@ def delete_session(response: Response):
         key=USER_SESSION_COOKIE,
         path="/",
         httponly=True,
-        samesite="lax",
+        samesite=get_cookie_samesite(),
         secure=os.environ.get("USER_COOKIE_SECURE", "false").lower() == "true",
     )
 

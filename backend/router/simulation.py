@@ -203,7 +203,7 @@ async def generate_ending(payload: EndingRequest):
             if turn_stats_id in stat_lookup
         }
                     
-        history_score = int((historical_choices_count / total_turns) * 100) if total_turns > 0 else 100
+        history_score = round((historical_choices_count / total_turns) * 100) if total_turns > 0 else 100
         is_all_historical = (historical_choices_count == total_turns)
                 
         # Check for pre-generated ending
