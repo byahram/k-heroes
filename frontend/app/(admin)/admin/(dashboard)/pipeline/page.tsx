@@ -265,7 +265,7 @@ export default function PipelinePage() {
       </div>
 
       {/* 개발/업데이트 중 안내 오버레이 (비활성화 불가, 확인 클릭 시 인물 카테고리로 리다이렉트) */}
-      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#FDFDFC]/35 backdrop-blur-[5px] p-4">
+      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/[0.04] backdrop-blur-[1.5px] p-4">
         <div className="w-full max-w-sm bg-white border border-[#E8E4DC] rounded-xl p-6 shadow-2xl space-y-4 text-center">
           <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-amber-50 text-amber-600 border border-amber-200 animate-pulse">
             <AlertTriangle className="size-5" />
