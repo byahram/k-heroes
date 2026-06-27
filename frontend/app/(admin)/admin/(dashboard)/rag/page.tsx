@@ -29,7 +29,7 @@ import {
 
 const COLUMNS = [
   { key: "icon", header: "", className: "w-10 text-center" },
-  { key: "name", header: "파일명" },
+  { key: "name", header: "파일명", className: "min-w-[280px]" },
   { key: "type", header: "형식", className: "w-24" },
   { key: "size", header: "크기", className: "w-28" },
   { key: "source", header: "보관소", className: "w-28" },
@@ -40,7 +40,7 @@ const COLUMNS = [
 
 const PROCESSED_COLUMNS = [
   { key: "icon", header: "", className: "w-10 text-center" },
-  { key: "name", header: "산출물 명칭" },
+  { key: "name", header: "산출물 명칭", className: "min-w-[280px]" },
   { key: "type", header: "포맷", className: "w-24" },
   { key: "size", header: "크기", className: "w-28" },
   { key: "source", header: "보관소", className: "w-28" },
@@ -276,7 +276,7 @@ export default function RagPage() {
                 <AdminTableCell className="text-center">
                   <FileText className="size-5 text-[#8A847C] inline" />
                 </AdminTableCell>
-                <AdminTableCell className="font-medium text-[#1A1714] break-all max-w-xs">
+                <AdminTableCell className="font-medium text-[#1A1714] break-all min-w-[280px]">
                   {file.name}
                 </AdminTableCell>
                 <AdminTableCell>
@@ -444,7 +444,7 @@ export default function RagPage() {
               <AdminTableCell className="text-center">
                 <FileCheck className="size-5 text-green-700 inline" />
               </AdminTableCell>
-              <AdminTableCell className="font-semibold text-[#2A4232]">
+              <AdminTableCell className="font-semibold text-[#2A4232] break-all min-w-[280px]">
                 {file.name}
               </AdminTableCell>
               <AdminTableCell>
