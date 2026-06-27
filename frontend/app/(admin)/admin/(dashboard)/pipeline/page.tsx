@@ -273,7 +273,7 @@ export default function PipelinePage() {
           
           <div className="space-y-1">
             <h3 className="text-base font-bold text-[#1A1714]">
-              개발 및 업데이트 중
+              실데이터 보호를 위한 기능 잠금
             </h3>
             <p className="text-xs text-[#8A847C] leading-relaxed">
               현재 시나리오 일괄 생성 기능은 백엔드 RAG 엔진 패치 및 최적화 작업으로 인해 임시 업데이트 중입니다. 신속하게 완료하겠습니다.

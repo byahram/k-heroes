@@ -206,7 +206,7 @@ export default function ReviewListPage() {
           
           <div className="space-y-1">
             <h3 className="text-base font-bold text-[#1A1714]">
-              개발 및 업데이트 중
+              실데이터 보호를 위한 기능 잠금
             </h3>
             <p className="text-xs text-[#8A847C] leading-relaxed">
               현재 시나리오 검수 및 배포 기능은 배포 파이프라인 정합성 점검 및 UI 개선 작업으로 인해 임시 업데이트 중입니다. 신속하게 완료하겠습니다.

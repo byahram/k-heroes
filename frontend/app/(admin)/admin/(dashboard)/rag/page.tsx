@@ -327,7 +327,16 @@ export default function RagPage() {
           </div>
 
           {/* Step 2 */}
-          <div className="p-5 rounded-xl border border-[#E8E4DC] bg-[#FDFDFC] flex flex-col justify-between space-y-4">
+          <div className="relative p-5 rounded-xl border border-[#E8E4DC] bg-[#FDFDFC] flex flex-col justify-between space-y-4 overflow-hidden">
+            {/* 개발/업데이트 중 오버레이 (실데이터 보호를 위해 DB 동기화 차단) */}
+            <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-white/80 backdrop-blur-[1.5px] p-4 text-center">
+              <AlertTriangle className="size-8 text-amber-600 animate-pulse mb-2" />
+              <span className="text-sm font-bold text-[#1A1714]">실데이터 보호를 위한 기능 잠금</span>
+              <span className="text-[10px] text-[#8A847C] mt-1 px-6 leading-normal font-medium">
+                실데이터 보호를 위해 프로필 생성 및 DB 동기화 기능이 임시 점검 중입니다.
+              </span>
+            </div>
+
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold text-amber-700 bg-amber-50 px-2.5 py-0.5 rounded">2단계</span>
