@@ -1,11 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { Eye, Clock, Search, Trash2, Calendar, FileText, CheckCircle2, RefreshCw } from "lucide-react";
+import { Eye, Clock, Search, Trash2, Calendar, FileText, CheckCircle2, RefreshCw, AlertTriangle } from "lucide-react";
 import { AdminPageHeader } from "@/app/(admin)/_components/admin-page-header";
 import { AdminButton } from "@/app/(admin)/_components/admin-button";
 import { AdminInput } from "@/app/(admin)/_components/admin-input";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 type DraftScenario = {
   id: string;
@@ -48,6 +49,7 @@ const INITIAL_DRAFTS: DraftScenario[] = [
 ];
 
 export default function ReviewListPage() {
+  const router = useRouter();
   const [drafts, setDrafts] = useState<DraftScenario[]>(INITIAL_DRAFTS);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterTab, setFilterTab] = useState<"all" | "ready" | "text_only">("all");
@@ -194,6 +196,33 @@ export default function ReviewListPage() {
           ))}
         </div>
       )}
+
+      {/* 개발/업데이트 중 안내 오버레이 (비활성화 불가, 확인 클릭 시 인물 카테고리로 리다이렉트) */}
+      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#FDFDFC]/35 backdrop-blur-[5px] p-4">
+        <div className="w-full max-w-sm bg-white border border-[#E8E4DC] rounded-xl p-6 shadow-2xl space-y-4 text-center">
+          <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-amber-50 text-amber-600 border border-amber-200 animate-pulse">
+            <AlertTriangle className="size-5" />
+          </div>
+          
+          <div className="space-y-1">
+            <h3 className="text-base font-bold text-[#1A1714]">
+              개발 및 업데이트 중
+            </h3>
+            <p className="text-xs text-[#8A847C] leading-relaxed">
+              현재 시나리오 검수 및 배포 기능은 배포 파이프라인 정합성 점검 및 UI 개선 작업으로 인해 임시 업데이트 중입니다. 신속하게 완료하겠습니다.
+            </p>
+          </div>
+
+          <div className="pt-1">
+            <button
+              onClick={() => router.push("/admin/character-categories")}
+              className="w-full inline-flex justify-center items-center rounded-lg bg-[#2A4232] px-4 py-2.5 text-xs font-semibold text-white shadow-sm hover:bg-[#1E3024] transition-colors cursor-pointer"
+            >
+              인물 카테고리로 이동
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
