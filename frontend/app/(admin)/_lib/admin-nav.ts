@@ -1,11 +1,14 @@
 import {
   BookOpen,
   Contact,
+  Database,
+  Eye,
   Flag,
   GitBranch,
   GraduationCap,
   LayoutDashboard,
   School,
+  Sparkles,
   Tags,
   UserCog,
   Users,
@@ -27,6 +30,14 @@ export const adminNavGroups: AdminNavGroup[] = [
   {
     label: "개요",
     items: [{ title: "대시보드", href: "/admin", icon: LayoutDashboard }],
+  },
+  {
+    label: "AI 생성 파이프라인",
+    items: [
+      { title: "RAG 자료 관리", href: "/admin/rag", icon: Database },
+      { title: "시나리오 일괄 생성", href: "/admin/pipeline", icon: Sparkles },
+      { title: "시나리오 검수 및 배포", href: "/admin/review", icon: Eye },
+    ],
   },
   {
     label: "콘텐츠",

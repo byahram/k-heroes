@@ -139,7 +139,7 @@ async def play_turn(payload: TurnRequest):
 
 def get_history_rag_context(character_name: str, query: str, era_tag: Optional[str] = None) -> List[Dict[str, Any]]:
     try:
-        from history_pdf_rag_retriever import get_rag_instance
+        from utils.history_pdf_rag_retriever import get_rag_instance
         base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         db_path = os.path.join(base_dir, "data", "processed", "history_db.pkl")
         rag = get_rag_instance(db_path)
